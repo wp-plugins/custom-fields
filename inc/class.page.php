@@ -21,15 +21,14 @@ class CF_Page_Field{
 	function retrieve_fields() {
 		//global $cf_registered_field_updates;
 		$_sidebars_fields = array();
-
 		$sidebars = array_keys($this->pt->cf_registered_sidebars);
 		unset( $this->pt->sidebars_fields['array_version'] );
 		$old = array_keys($this->pt->sidebars_fields);
 		sort($old);
 		sort($sidebars);
-		
-		if ( $old == $sidebars || count($sidebars) > count($old))
-			return;
+
+		//if ( $old == $sidebars || count($sidebars) > count($old))
+		//	return;
 	
 		// Move the known-good ones first
 		foreach ( $sidebars as $id ) {
@@ -67,7 +66,6 @@ class CF_Page_Field{
 		$this->pt->sidebars_fields = $_sidebars_fields;
 		unset($_sidebars_fields, $_fields);
 		
-		
 		// find hidden/lost multi-field instances
 		$lost_fields = array();
 		foreach ( $this->pt->cf_registered_fields as $key => $val ) {
@@ -79,11 +77,10 @@ class CF_Page_Field{
 			if ( 2 > (int) $number )
 				continue;
 	
-			$lost_fields[] = $key;
+			//$lost_fields[] = $key;
 		}
-		
 		$this->pt->sidebars_fields['cf_inactive_fields'] = array_merge($lost_fields, (array) $this->pt->sidebars_fields['cf_inactive_fields']);
-			
+				
 		$this->pt->cf_field_sidebar->cf_set_sidebars_fields($this->pt->sidebars_fields);
 	}
 }

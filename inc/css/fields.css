@@ -28,7 +28,7 @@ div.field-liquid-right {
 }
 
 .field-liquid-right .field,
-#wp_inactive_fields .field,
+#cf_inactive_fields .field,
 .field-liquid-right .sidebar-description {
 	width: 250px;
 	margin: 0 auto 20px;
@@ -39,7 +39,7 @@ div.field-liquid-right {
 	margin-bottom: 10px;
 }
 
-#wp_inactive_fields .field {
+#cf_inactive_fields .field {
 	margin: 0 10px 20px;
 	float: left;
 }
@@ -108,7 +108,7 @@ div.sidebar-name {
 	padding: 7px 5px 0;
 }
 
-#wp_inactive_fields {
+#cf_inactive_fields {
 	padding: 5px 5px 0;
 }
 
@@ -140,7 +140,7 @@ div.sidebar-name {
 	width: 250px;
 }
 
-#wp_inactive_fields .field-placeholder {
+#cf_inactive_fields .field-placeholder {
 	margin: 0 10px 20px;
 	float: left;
 }
@@ -274,7 +274,7 @@ a.field-control-edit {
 
 #available-fields .field-control-edit .add,
 #fields-right .field-control-edit .edit,
-#wp_inactive_fields .field-control-edit .edit {
+#cf_inactive_fields .field-control-edit .edit {
 	display: inline;
 }
 

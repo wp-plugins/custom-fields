@@ -267,6 +267,8 @@ class CF_Admin_Object {
 	function loadCustomFields( $post_type = '' ) {
 		//$index = 'top-sidebar-' . $post_type;
 		foreach( $this->pt->cf_registered_sidebars as $index => $_s){
+			if( $index == 'cf_inactive_fields' )
+				continue;
 			if ( is_int($index) ) {
 				$index = "sidebar-$index";
 			} else {
@@ -321,7 +323,6 @@ class CF_Admin_Object {
 		$sidebars_fields = $this->pt->cf_field_sidebar->cf_get_sidebars_fields();
 		$sidebar = $this->pt->cf_registered_sidebars[$index];
 		foreach ( (array) $sidebars_fields[$index] as $id ) {
-
 			if ( !isset($this->pt->cf_registered_fields[$id]) ) continue;
 
 			$params = array_merge(

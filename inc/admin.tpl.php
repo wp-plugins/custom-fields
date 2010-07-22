@@ -307,7 +307,7 @@ require_once( './admin-header.php' ); ?>
 <div class="field-liquid-right">
 <div id="fields-right">
 <div class="add_sidebar fields-holder-wrap closed"><div>
-<h3><span><input type="text" value="+ PLUS DE SIDEBAR !" name="add_sidebar_name"/><input type="submit" value="OK" name="add_sidebar_submit"/></span></h3>
+<h3><span><input type="text" value="<?php _e('More sidebar'); ?>" name="add_sidebar_name"/><input type="submit" value="OK" name="add_sidebar_submit"/></span></h3>
 </div>
 </div>
 <?php

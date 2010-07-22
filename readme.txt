@@ -1,10 +1,10 @@
 === Custom fields ===
 Contributors: djudorange & momo360modena
 Donate link: http://www.beapi.fr/donate/
-Tags: custom, fields, custom fields, term meta, meta, blog meta, post meta, object meta
+Tags: custom, fields, custom fields, term meta, meta, post meta, object meta
 Requires at least: 2.0
 Tested up to: 2.0
-Stable tag: 2.0.0-beta
+Stable tag: 2.0.1
 
 This plugin add custom fields for some things on WordPress, blog, term taxonomy and custom object types
 

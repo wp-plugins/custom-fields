@@ -29,7 +29,6 @@ class CF_Admin {
 			else
 				$menu_id[$pt->name] = 'edit.php?post_type=' . $pt->name;
 		}
-		//$menu_id = array();
 		$menu_id['page'] = 'edit.php?post_type=page';
 		
 		
@@ -38,50 +37,33 @@ class CF_Admin {
 				continue;
 				
 			$options_pt = get_option('cf_options-'.$post_type);
-			//$options_pt = array();
 			wp_cache_set('cf_options-'.$post_type, $options_pt, FLAG_CACHE, 3600);
 			$this->post_type_nav[$post_type] = new SimpleCustomTypes_Admin_PostType( array('name' => $post_type, 'id_menu' => $id_menu), $options_pt );
 		}
 		
 		//Add taxonomy fields
-		
 		$params = array( 'show_ui' => true );
 		$taxonomies = get_taxonomies($params, 'objects');
 		
 		$menu_id = array();
-		//var_dump($taxonomies);
-		/*foreach( $taxonomies as $taxo ){
-			if($taxo->name == 'post')
-				$menu_id[$taxo->name] = 'edit.php';
-			else
-				$menu_id[$taxo->name] = 'edit.php?post_type=' . $pt->name;
-		}*/
-		//$menu_id = array();
-		//$menu_id['page'] = 'edit.php?post_type=page';
-		
-		//add_menu_page( 'Taxonomies Fields', 'Taxonomies Fields', 'manage options', 'cf_taxonomies', '', '' );
-		
 		$this->taxo = array();
 		foreach( $taxonomies as $taxo_name => $taxo ){
 			$this->taxo[$taxo->labels->name] = $taxo_name;
 			$options_pt = get_option('cf_options-'.$taxo_name);
-			//wp_cache_set('cf_options-'.$taxo_name, $options_pt, FLAG_CACHE, '3600');
+			wp_cache_set('cf_options-'.$taxo_name, $options_pt, FLAG_CACHE, 3600);
 			$this->taxo_nav[$taxo_name] = new SimpleCustomTypes_Admin_Taxonomy( array('name' => $taxo_name, 'taxo' => $taxo), $options_pt );
-		}
-		
-		
+		}	
 		
 	}
 	
 	function addMenuPage(){
-		add_menu_page( 'Taxo Fields', 'Taxo Fields', 'manage_options', 'cf_taxonomies', array(&$this, 'toto'), 10 );
-	//	foreach($this->taxo as $taxo => $values){
-			//add_submenu_page( 'cf_taxonomies', $taxo, $taxo, 'manage_options', 'cf_taxo_'.$values, array(&$this->taxo_nav[$values], 'toto') );
-	//	}
+		add_menu_page( 'Taxo Fields', 'Taxo Fields', 'manage_options', 'cf_taxonomies', array(&$this, 'params'), 10 );
 	}
 	
-	function toto(){
-	
+	function params(){
+		?>
+		<span>Nothing here now</span>
+		<?php
 	}
 }
 ?>

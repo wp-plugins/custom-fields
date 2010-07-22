@@ -1,15 +1,15 @@
 <?php
 /*
 Plugin Name: Custom Fields for WordPress
-Version: 2.0.0-beta
-Plugin URI: http://redmine.beapi.fr/projects/show/simple-taxonomy
+Version: 2.0.1
+Plugin URI: http://redmine.beapi.fr/projects/show/custom-fields
 Description: This plugin add custom fields for some things on WordPress, blog, term taxonomy and custom object types
 Author: Julien Guilmont & Amaury Balmer
 Author URI: http://www.beapi.fr
 
 ----
 
-Copyright 2010 Julien Guilmont & Amaury Balmer (julien.guilmont@beapi.fr & amaury@beapi.fr)
+Copyright 2010 Julien Guilmont (julien.guilmont@beapi.fr)
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -27,6 +27,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 ---
 
+Todo :
+		
+	Composants
+		Google map
+
+	Extras
 */
 
 // Folder name
@@ -53,7 +59,6 @@ require( SCF_DIR . '/inc/functions.php' );
 	require( SCF_DIR . '/inc/class.ajax.php' );
 	require( SCF_DIR . '/inc/class.sidebar.php' );
 	require( SCF_DIR . '/inc/class.admin.posttype.php' );
-	//require( SCF_DIR . '/inc/class.admin.widget.php');
 	require( SCF_DIR . '/inc/class.field.base.php');
 	require( SCF_DIR . '/inc/class.field.factory.php');	
 	require( SCF_DIR . '/inc/class.field.manager.php');	
@@ -66,6 +71,7 @@ require( SCF_DIR . '/inc/functions.php' );
 	
 	// Call built'in composants
 	require( SCF_DIR . DIRECTORY_SEPARATOR . 'composants' . DIRECTORY_SEPARATOR . 'default-fields.php' );
+	//require( SCF_DIR . DIRECTORY_SEPARATOR . 'composants' . DIRECTORY_SEPARATOR . 'field-textarea.php' );
 	require( SCF_DIR . DIRECTORY_SEPARATOR . 'composants' . DIRECTORY_SEPARATOR . 'date-picker'    . DIRECTORY_SEPARATOR . 'date-picker.php' );
 	require( SCF_DIR . DIRECTORY_SEPARATOR . 'composants' . DIRECTORY_SEPARATOR . 'dropdown-users' . DIRECTORY_SEPARATOR . 'dropdown-users.php' );
 
@@ -76,8 +82,6 @@ function initCustomFields() {
 	
 	// Load translations
 	load_plugin_textdomain ( 'custom-fields', false, SCF_FOLDER . 'languages' );
-
-	$custom_fields['admin-base'] 	= new CF_Admin();	
-
+	$custom_fields['admin-base'] 	= new CF_Admin();
 }
 ?>

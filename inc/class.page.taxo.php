@@ -25,8 +25,8 @@ class CF_Page_Field_Taxo{
 		$old = array_keys($this->pt->sidebars_fields);
 		sort($old);
 		sort($sidebars);
-		if ( $old == $sidebars )
-			return;
+		//if ( $old == $sidebars )
+		//	return;
 	
 		// Move the known-good ones first
 		foreach ( $sidebars as $id ) {
@@ -74,7 +74,7 @@ class CF_Page_Field_Taxo{
 			if ( 2 > (int) $number )
 				continue;
 	
-			$lost_fields[] = $key;
+			//$lost_fields[] = $key;
 		}
 		$this->pt->sidebars_fields['cf_inactive_fields'] = array_merge($lost_fields, (array) $this->pt->sidebars_fields['cf_inactive_fields']);
 		$this->pt->cf_field_sidebar->cf_set_sidebars_fields($this->pt->sidebars_fields);

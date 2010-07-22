@@ -16,15 +16,11 @@ class CF_Admin_Object_Taxo {
 		
 		// Register Javascript need for custom fields
 		add_action( 'admin_enqueue_scripts', array(&$this, 'initStyleScript'), 10 );
-		
-		// Save custom datas
-		//add_action( 'save_post', array(&$this, 'saveCustomFields'), 10, 2 );
 
 		// Add blocks on write page
-		//add_action( 'add_meta_boxes', array(&$this, 'initCustomFields'), 10, 1 );
 		add_action( $this->pt->taxo->name . '_edit_form_fields', array(&$this, 'loadCustomFields'), 10, 2 );
 		
-		add_action ( "edited_" . $this->pt->taxo->name, array(&$this, 'saveCustomFields'), 10 , 2);
+		add_action( "edited_" . $this->pt->taxo->name, array(&$this, 'saveCustomFields'), 10 , 2);
 	}
 
 	/**
@@ -43,9 +39,7 @@ class CF_Admin_Object_Taxo {
 			}
 
 			$current_customtype = $current_options['customtypes'][$post_type];
-
 			if ( !isset($current_customtype['custom']) || !is_array($current_customtype['custom']) || empty($current_customtype['custom']) ) { // Custom fields for this custom type ?
-
 				return false;
 			}
 			
@@ -186,7 +180,6 @@ class CF_Admin_Object_Taxo {
 	 * @return boolean
 	 */
  	function saveCustomFields( $term_id, $tt_id )  {
- 		//var_dump($term_id);
  		
 		foreach( $this->pt->cf_registered_sidebars as $index => $_s){
 			//var_dump($index);
@@ -264,6 +257,8 @@ class CF_Admin_Object_Taxo {
 	function loadCustomFields( $tag, $taxonomy ) {
 		//$index = 'top-sidebar-' . $post_type;
 		foreach( $this->pt->cf_registered_sidebars as $index => $_s){
+			if( $index == 'cf_inactive_fields' )
+				continue;
 			if ( is_int($index) ) {
 				$index = "sidebar-$index";
 			} else {
@@ -307,49 +302,6 @@ class CF_Admin_Object_Taxo {
 			//add_meta_box($p['id'], $p['name'], array(&$this, 'genericRenderBoxes'), $post_type, 'advanced', 'default', array( $index ) );
 		}
 		return $did_one;
-	
-	
-	/*
-	
-	
-	/////META BOX
-		// Get current options
-		$current_options = get_option( SCUST_OPTION );
-		
-		if ( !isset($current_options['customtypes'][$post_type]) ) // Custom Type came from plugin ?
-			return false;
-			
-		// Custom Type have custom fields ?
-		if ( !isset($current_options['customtypes'][$post_type]['custom']) || empty($current_options['customtypes'][$post_type]['custom']) ) 
-			return false;
-		
-		// Group custom fields on different box.
-		$boxes = array();
-		$i = $j = 0;
-		foreach( (array) $current_options['customtypes'][$post_type]['custom'] as $c_field ) {
-			$i++;
-			
-			if ( $c_field['type'] != 'box' && $i == 1 ) { // No box for start ?
-				$j++;
-				$boxes[$j][] = array( 
-					'name' => sanitize_title(__('Custom object fields', 'simple-customtypes')), 
-					'label' => __('Custom object fields', 'simple-customtypes') 
-				);
-			} elseif ( $c_field['type'] == 'box' ) {
-				$j++;
-			}
-			
-			$boxes[$j][] = $c_field;
-		}
-		
-		// Load boxes group
-		foreach ( (array) $boxes as $boxe ) {
-			$first = current($boxe);
-			add_meta_box('sct-' . $first['name'], $first['label'], array(&$this, 'genericRenderBoxes'), $post_type, 'advanced', 'default', $boxe );
-		}
-		
-		return true;
-		*/
 	}
 	
 	/**
@@ -395,118 +347,6 @@ class CF_Admin_Object_Taxo {
 			}
 		}
 	
-	
-	
-	
-	
-	///////META BOX
-	/*
-		if ( empty($box['args']) ) {
-			echo '<p>'.__('No fields for this box.', 'simple-customtypes').'</p>';
-			return false;
-		}
-
-		// Get current values from post meta
-		$current_values = get_post_custom( $post->ID );
-		
-		echo '<div class="container-sct form-wrap">' . "\n";
-		
-		// Build HTML
-		foreach( (array) $box['args'] as $field ) {
-			
-			if ( $field['type'] == 'box' || !isset($field['type']) ) { // skip box.
-				continue;
-			}
-			
-			// Prepare value, db or default ?
-			if ( isset($current_values[$field['name']][0]) ) {
-				$current_value = $current_values[$field['name']][0];
-			} else {
-				$current_value = $field['default'];
-			}
-			
-			$current_value = maybe_unserialize( $current_value );
-			if ( is_string($current_value) ) {
-				$current_value = stripslashes( $current_value );
-			}
-			
-			if ( $field['type'] == 'hidden' ) {
-				echo '<input type="hidden" name="'.esc_attr($field['name']).'" value="'.esc_attr($field['default']).'" />' . "\n";
-				continue;
-			}
-			
-			$field['label'] = stripslashes( $field['label'] );
-			if ( in_array($field['type'], array('checkbox', 'editor', 'image') ) ) { // No label for checkbox, editor
-				echo '<div class="'.(($field['required']=='1')?'form-required':'').'">' . "\n";
-					echo '<span class="label">'.esc_html($field['label']).'</span>' . "\n";
-			} else {
-				echo '<div class="form-field '.(($field['required']=='1')?'form-required':'').'">' . "\n";
-					echo '<label for="'.esc_attr($field['name']).'">'.esc_html($field['label']).'</label>' . "\n";
-			}
-		
-			switch( $field['type'] ) {
-				
-				case 'textarea':
-					echo '<textarea name="'.esc_attr($field['name']).'" id="'.esc_attr($field['name']).'" rows="5" cols="50" style="width: 97%;" '.(($field['required']=='1')?'aria-required="true"':'').'>'.esc_html($current_value).'</textarea>' . "\n";
-					break;
-					
-				case 'editor-light':
-					echo '<textarea class="mceEditor" name="'.esc_attr($field['name']).'" id="'.esc_attr($field['name']).'" rows="5" cols="50" style="width: 97%;" '.(($field['required']=='1')?'aria-required="true"':'').'>'.esc_html($current_value).'</textarea>' . "\n";
-					break;
-				
-				case 'editor':
-					the_editor( $current_value, esc_attr($field['name']), 'title', false, 10 );
-					break;
-				
-				case 'select':
-					echo '<select name="'.esc_attr($field['name']).'" id="'.esc_attr($field['name']).'" style="width: 47%;">';
-						foreach( (array) explode(',', $field['values_accepted']) as $val ) {
-							echo '<option value="'.esc_attr($val).'" '.selected($val, $current_value, false).'>'.esc_html(ucfirst($val)).'</option>' . "\n";
-						}
-					echo '</select>' . "\n";
-					break;
-				
-				case 'checkbox':
-					echo '<fieldset><legend class="screen-reader-text"><span>'.esc_html($field['label']).'</span></legend>' . "\n";
-					
-					foreach( (array) explode(',', $field['values_accepted']) as $val ) {
-						$checked = ( in_array( $val, (array) $current_value ) ) ? 'checked="checked"' : '';
-						echo '<label><input type="checkbox" name="'.esc_attr($field['name']).'[]" value="'.esc_attr($val).'" '.$checked.' /> '.esc_html(ucfirst($val)).'</label><br />' . "\n";
-					}
-					echo '</fieldset>' . "\n";
-					unset($checked);
-					break;
-				
-				case 'image':
-				case 'media':
-					echo '<input type="hidden" name="'.esc_attr($field['name']).'" value="'.esc_attr($current_value).'" />' . "\n";
-					echo '<div id="preview-'.esc_attr($field['name']).'">' . "\n";
-						echo $this->getPreviewMedia( $current_value, $field['name'] );
-					echo '</div>' . "\n";
-					
-					echo '<div id="media-buttons" class="hide-if-no-js">' . "\n";
-						media_buttons();
-					echo '</div>' . "\n";
-					
-					break;
-				
-				case 'textbox':
-					echo '<input name="'.esc_attr($field['name']).'" id="'.esc_attr($field['name']).'" type="text" value="'.esc_attr($current_value).'" size="40" '.(($field['required']=='1')?'aria-required="true"':'').' />' . "\n";
-					break;
-				
-				default :
-					do_action( 'scustomtype-admin-object-'.$field['type'], $field, $current_value, $post, $box );
-					break;
-			
-			}
-			
-			if ( !empty($field['description']) )
-				echo '<br /><span class="description">'.esc_html($field['description']).'</span>' . "\n";
- 		
-			echo '</div>' . "\n";
-		}
-		echo '</div>' . "\n";
-		*/
 		return true;
 	}
 	

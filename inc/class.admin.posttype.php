@@ -124,7 +124,6 @@ class SimpleCustomTypes_Admin_PostType{
 			}
 
 		}
-
 		foreach( array_diff_key( $this->cf_registered_fields, $field_ar ) as $field => $value){
 			unset($this->cf_registered_fields[$field]);
 		}

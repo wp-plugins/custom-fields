@@ -91,9 +91,6 @@ class CF_Ajax_Field{
 		if ( !current_user_can('edit_theme_options') )
 			die('-1');
 		unset( $_POST['savefields'], $_POST['action'] );
-		
-		//$o = $this->post_type_nav[$_POST['post_type']];
-		// save fields order for all sidebars
 		if ( is_array($_POST['sidebars']) ) {
 			$sidebars = array();
 			foreach ( $_POST['sidebars'] as $key => $val ) {
@@ -110,6 +107,8 @@ class CF_Ajax_Field{
 				$sidebars[$key] = $sb;
 			}
 			$this->pt->cf_field_sidebar->cf_set_sidebars_fields($sidebars);
+			var_dump($this->pt->sidebars_fields);
+			var_dump($this->pt->sidebars);
 			die('1');
 		}
 	
@@ -133,7 +132,6 @@ class CF_Ajax_Field{
 			'after_title' => ' :</strong></label>',
 		);
 		$this->pt->update_var('sidebars');
-		//wp_redirect( wp_get_referer() );
 		die();
 	}
 	
@@ -144,17 +142,20 @@ class CF_Ajax_Field{
 		unset( $_POST['savefields'], $_POST['action'] );
 		$sidebars = array();
 		foreach( $this->pt->sidebars as $key => $sidebar){
-			if($sidebar['id'] != $_POST['sidebar'])
+			if($sidebar['id'] != $_POST['sidebar']){
 				$sidebars[$key] = $sidebar;
+			}
 		}
+
+		$this->pt->sidebars_fields['cf_inactive_fields'] = array_merge($this->pt->sidebars_fields[$_POST['sidebar']], $this->pt->sidebars_fields['cf_inactive_fields']);
+		unset($this->pt->sidebars_fields[$_POST['sidebar']]);
 		$this->pt->sidebars = $sidebars;
 		$this->pt->update_var('sidebars');
+		$this->pt->update_var('sidebars_fields');
 		if ( isset( $this->pt->cf_registered_sidebars[$_POST['sidebar']] ) ){
 			unset( $this->pt->cf_registered_sidebars[$_POST['sidebar']] );
 			$this->pt->update_var('cf_registered_sidebars');
-			//do_action( 'cf_unregister_sidebar', $sidebar );
 		}
-		//wp_redirect( wp_get_referer() );
 		die();
 	}
 }

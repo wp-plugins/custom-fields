@@ -53,8 +53,9 @@ class SimpleCustomTypes_Admin_Taxonomy{
 		$this->taxo							= $taxo['taxo'];
 		$this->id_menu 						= 'cf_taxonomies';
 		//$options = array();
+		$options = wp_cache_get('cf_options-'.$this->post_type, FLAG_CACHE);
+		
 		if(!empty($options)){
-			wp_cache_set('cf_options-'.$this->post_type, $options, FLAG_CACHE, 3600);
 			$this->p_options = $options;		
 			$this->cf_registered_sidebars 		= isset($options['cf_registered_sidebars']) ? (array) $options['cf_registered_sidebars'] : array();
 			$this->sidebars_fields 				= isset($options['sidebars_fields']) ? (array) $options['sidebars_fields'] : array('cf_inactive_fields' => array(), 'array_version' => 3);
@@ -66,7 +67,7 @@ class SimpleCustomTypes_Admin_Taxonomy{
 			$this->update_var('sidebars_fields');
 		}else {
 			$this->sidebars_fields = array('cf_inactive_fields' => array(), 'array_version' => 3);
-			wp_cache_replace('cf_options-'.$this->post_type, array('sidebars_fields' => $this->sidebars_fields), FLAG_CACHE, 3600);
+			$this->update_var('sidebars_fields');
 		}
 		$this->cf_field_factory =& new CF_Field_Factory	(&$this);
 		$this->cf_ajax 			=& new CF_Ajax_Field	(&$this);
