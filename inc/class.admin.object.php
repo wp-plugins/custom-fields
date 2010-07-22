@@ -32,6 +32,10 @@ class CF_Admin_Object {
 	function initStyleScript() {
 		global $post_type;
 		if ( isset($post_type) ) {
+		
+			// Add CSS for boxes
+			wp_enqueue_style ( 'simple-custom-types-object', SCF_URL.'/inc/css/admin.css', array(), SCF_VERSION);
+			
 			// Get current options
 			$current_options = get_option( SCUST_OPTION );
 
@@ -64,8 +68,7 @@ class CF_Admin_Object {
 				add_action( 'admin_print_footer_scripts', array(&$this, 'addSendToEditor') );
 			}
 			
-			// Add CSS for boxes
-			wp_enqueue_style ( 'simple-custom-types-object', SCUST_URL.'/inc/css/object.css', array(), SCUST_VERSION);
+			
 
 			// Allow composant to add JS/CSS
 			do_action( 'sctype-admin-object-head', $post_type, $current_customtype );
@@ -345,10 +348,12 @@ class CF_Admin_Object {
 			
 			$callback = $this->pt->cf_registered_fields[$id]['callback'];
 			do_action( 'dynamic_sidebar', $this->pt->cf_registered_fields[$id] );
+			echo '<div class="container-sct form-wrap">';
 			if ( is_callable( $callback ) ) {
 				call_user_func_array( $callback, $params);
 				$did_one = true;
 			}
+			echo '</div>';
 		}
 		return true;
 	}

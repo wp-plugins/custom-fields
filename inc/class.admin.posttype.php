@@ -108,6 +108,10 @@ class SimpleCustomTypes_Admin_PostType{
 		$this->get_var('sidebars');
 		if( isset($this->sidebars) && is_array($this->sidebars) ){
 			foreach( $this->sidebars as $sidebar ){
+				$sidebar['before_widget'] = '<div class="form-field">';
+				$sidebar['after_widget'] = '</div>';
+				$sidebar['before_title'] = '<label>';
+				$sidebar['after_title'] = '</label>';
 				$this->cf_sidebar->cf_register_sidebar( $sidebar );
 			}
 		}
