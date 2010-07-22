@@ -1,0 +1,2 @@
+.dragHandle { width:18px; }
+.showDragHandle { background: url(../img/updown2.gif) 50% 50% no-repeat; cursor: move; }
