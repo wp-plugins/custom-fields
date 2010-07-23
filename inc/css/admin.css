@@ -1,15 +1,53 @@
-div.form-field textarea, div.form-field input{
+.postbox div.form-field textarea, div.form-field input[type="text"]{
 	margin-top: 0;
 }
-div.form-field label{
+.postbox div.form-field label{
 	-moz-border-radius:3px 3px 0 0;
 	-webkit-border-radius:3px 3px 0 0;
 	background-color:#E9E9E9;
-	border-color:#DFDFDF #DFDFDF #E9E9E9;
-	border-style:solid;
+	border-color:#DFDFDF;
+	border-style:solid solid none;
 	border-width:1px;
 	color:#333333;
 	margin:5px 5px 0 10px;
 	padding:4px 5px 2px;
 	display: inline-block;
+}
+.postbox div.form-field .checkbox-field, div.form-field .editor-light-field{
+	-moz-border-radius:4px 4px 4px 4px;
+	-webkit-border-radius:4px 4px 4px 4px;
+	border:1px solid #DFDFDF;
+	padding:5px;
+}
+.postbox div.form-field .checkbox-field label{
+	background:none repeat scroll 0 0 transparent;
+	border:medium none;
+	margin:0;
+	width: 315px;
+}
+.postbox div.form-field .checkbox-field label input[type="checkbox"]{
+	width: auto;
+}
+#post-body .postbox div.form-field .editor-light-field .wp_themeSkin .mceStatusbar a.mceResize{
+	top: auto;
+}
+.postbox div.form-field .editor-light-field{
+	padding: 0;
+}
+.postbox .form-field input, .form-field textarea{
+	width: 100%;
+}
+.postbox .form-field input.hasDatepicker{
+	display:block;
+	text-align:center;
+	width:auto;
+}
+.postbox .form-field .dropdown-user-field{
+	display:block;
+	width:20%;
+}
+.postbox .form-field .select_multiple_field select, .form-field .select-field select{
+	width: 100%;
+	display: block;
+	margin: 0;
 }
