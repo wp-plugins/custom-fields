@@ -96,7 +96,7 @@ class SimpleCustomTypes_Admin_PostType{
 		$this->cf_field_manager->register_field('CF_Field_Input');
 		$this->cf_field_manager->register_field('CF_Field_Textarea');
 		$this->cf_field_manager->register_field('CF_Field_EditorLight');
-		$this->cf_field_manager->register_field('CF_Field_Editor');
+		//$this->cf_field_manager->register_field('CF_Field_Editor');
 		$this->cf_field_manager->register_field('CF_Field_Select');
 		$this->cf_field_manager->register_field('CF_Field_SelectMultiple');
 		$this->cf_field_manager->register_field('CF_Field_Checkbox');

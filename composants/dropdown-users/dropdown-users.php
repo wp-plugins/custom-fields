@@ -20,9 +20,12 @@ class CF_Field_Dropdown_Users extends CF_Field{
 			$authors = get_editable_user_ids( $current_user->id, true );
 			if ( isset($entries['name']) && !empty($entries['name']) && !in_array($entries['name'], $authors) )
 				$authors[] = $entries['name'];
+				
+			wp_dropdown_users( array('include' => $authors, 'class' => 'dropdown-user-field', 'name' => $this->get_field_name('name'), 'selected' => empty($entries['name']) ? $user_ID : $entries['name']) );
 			
-			wp_dropdown_users( array('include' => $authors, 'name' => $this->get_field_name('name'), 'selected' => empty($entries['name']) ? $user_ID : $entries['name']) );
-
+			if( isset($instance['description']) )
+				echo '<p>'. $instance['description'] .'</p>';
+				
 		echo $after_widget;
 	}
 	
@@ -33,17 +36,20 @@ class CF_Field_Dropdown_Users extends CF_Field{
 	function update( $new_instance, $old_instance ) {
 		$instance = $old_instance;
 		$instance['title'] = strip_tags($new_instance['title']);
+		$instance['description'] = strip_tags($new_instance['description']);
 		return $instance;
 	}
 
 	function form( $instance ) {
 		//Defaults
 		$instance = wp_parse_args( (array) $instance, array( 'title' => '' ) );
+		$description = esc_html($instance['description']);
 		?>
 		<p>
 			<label for="<?php echo $this->get_field_id('title'); ?>"><?php _e('Title:'); ?></label>
 			<input class="widefat" id="<?php echo $this->get_field_id('title'); ?>" name="<?php echo $this->get_field_name('title'); ?>" type="text" value="<?php echo esc_attr( $instance['title'] ); ?>" />
 		</p>
+		<p><label for="<?php echo $this->get_field_id('description'); ?>"><?php _e('Description:'); ?></label> <textarea name="<?php echo $this->get_field_name('description'); ?>" id="<?php echo $this->get_field_id('description'); ?>" cols="20" rows="4" class="widefat"><?php echo $description; ?></textarea></p>
 		<?php
 	}
 }

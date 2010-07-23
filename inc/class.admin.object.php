@@ -55,7 +55,7 @@ class CF_Admin_Object {
 				if( $field['type'] == 'editor-light' ) {
 					$flag_light_editor = true;
 				} elseif( $field['type'] == 'image' || $field['type'] == 'media' ) {
-					$flag_media = true;
+					$flag_media = true; 
 				}
 			}
 			
@@ -71,7 +71,7 @@ class CF_Admin_Object {
 			
 
 			// Allow composant to add JS/CSS
-			do_action( 'sctype-admin-object-head', $post_type, $current_customtype );
+			do_action( 'sfield-admin-object-head', $post_type, $current_customtype );
 			
 			return true;
 		}

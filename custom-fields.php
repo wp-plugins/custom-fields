@@ -1,10 +1,10 @@
 <?php
 /*
 Plugin Name: Custom Fields for WordPress
-Version: 2.0.2
+Version: 2.0.3
 Plugin URI: http://redmine.beapi.fr/projects/show/custom-fields
 Description: This plugin add custom fields for some things on WordPress, blog, term taxonomy and custom object types
-Author: Julien Guilmont & Amaury Balmer
+Author: Julien Guilmont
 Author URI: http://www.beapi.fr
 
 ----
