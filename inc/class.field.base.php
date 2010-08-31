@@ -16,6 +16,7 @@ class CF_Field {
 	var $data_name;
 	var $alone_value = true;
 	var $option_name;
+	var $slug = null;
 	
 	var $number = false;	// Unique ID number of the current instance.
 	var $id = false;		// Unique ID string of the current instance (id_base-number)
@@ -100,6 +101,7 @@ class CF_Field {
 		$this->alone_value = $alone_value;
 		$this->field_options = wp_parse_args( $field_options, array('classname' => $this->option_name) );
 		$this->control_options = wp_parse_args( $control_options, array('id_base' => $this->id_base) );
+		
 	}
 
 	/**
@@ -259,7 +261,12 @@ class CF_Field {
 				$old_instance = isset($all_instances[$number]) ? $all_instances[$number] : array();
 
 				$instance = $this->update($new_instance, $old_instance);
+				$instance['slug'] = strip_tags($new_instance['slug']);
 				$this->_register_one( $number );
+				if( isset($instance['slug']) && $instance != '')
+					$this->slug = $instance['slug'];
+				else
+					$this->slug = $this->option_name . '__' . $number;
 				$this->pt->update_var('cf_registered_fields');
 				// filters the field's settings before saving, return false to cancel saving (keep the old settings if updating)
 				$instance = apply_filters('field_update_callback', $instance, $new_instance, $old_instance, $this);
@@ -291,13 +298,14 @@ class CF_Field {
 			$this->_set($field_args['number']);
 			$instance = $all_instances[ $field_args['number'] ];
 		}
-
+		
 		// filters the field admin form before displaying, return false to stop displaying it
 		$instance = apply_filters('field_form_callback', $instance, $this);
 
 		$return = null;
 		if ( false !== $instance ) {
 			$return = $this->form($instance);
+			
 			// add extra fields in the field form - be sure to set $return to null if you add any
 			// if the field has no form the text echoed from the default form method can be hidden using css
 			do_action_ref_array( 'in_field_form', array(&$this, &$return, $instance) );
@@ -343,13 +351,17 @@ class CF_Field {
 	}
 	
 	function updateEntries($args, $number){
+		if( !isset($this->slug) ){
+			$this->slug = $this->option_name . '__' . $number;
+		}
 		if($args['post_id'] == null && $args['entries'] == null && $args['tt_id'] == null)
 			return false;
 		if($args['post_id'] != null)
-			$entries['entries'] = update_post_meta($args['post_id'], $this->option_name . '__' . $number, $args['entries']);	
+			$entries['entries'] = update_post_meta($args['post_id'], $this->slug, $args['entries']);	
 		elseif($args['tt_id'] != null)
-			$entries['entries'] = update_term_taxonomy_meta($args['tt_id'], $this->option_name . '__' . $number, $args['entries']);	
+			$entries['entries'] = update_term_taxonomy_meta($args['tt_id'], $this->slug, $args['entries']);	
 	}
+	
 }
 
 ?>

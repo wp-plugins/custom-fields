@@ -10,7 +10,6 @@ class CF_Admin {
 	 */
 	function CF_Admin() {
 		add_action( 'init', array(&$this, 'initPostTypeFields') );
-		add_action( 'admin_menu', array(&$this, 'addMenuPage') );
 	}
 	
 	/**
@@ -42,18 +41,21 @@ class CF_Admin {
 		}
 		
 		//Add taxonomy fields
-		$params = array( 'show_ui' => true );
-		$taxonomies = get_taxonomies($params, 'objects');
-		
-		$menu_id = array();
-		$this->taxo = array();
-		foreach( $taxonomies as $taxo_name => $taxo ){
-			$this->taxo[$taxo->labels->name] = $taxo_name;
-			$options_pt = get_option('cf_options-'.$taxo_name);
-			wp_cache_set('cf_options-'.$taxo_name, $options_pt, FLAG_CACHE, 3600);
-			$this->taxo_nav[$taxo_name] = new SimpleCustomTypes_Admin_Taxonomy( array('name' => $taxo_name, 'taxo' => $taxo), $options_pt );
-		}	
-		
+		require_once(ABSPATH . 'wp-admin/includes/plugin.php');
+		if( is_plugin_active('meta-for-taxonomies/meta-for-taxonomies.php') ){
+			add_action( 'admin_menu', array(&$this, 'addMenuPage') );
+			$params = array( 'show_ui' => true );
+			$taxonomies = get_taxonomies($params, 'objects');
+			
+			$menu_id = array();
+			$this->taxo = array();
+			foreach( $taxonomies as $taxo_name => $taxo ){
+				$this->taxo[$taxo->labels->name] = $taxo_name;
+				$options_pt = get_option('cf_options-'.$taxo_name);
+				wp_cache_set('cf_options-'.$taxo_name, $options_pt, FLAG_CACHE, 3600);
+				$this->taxo_nav[$taxo_name] = new SimpleCustomTypes_Admin_Taxonomy( array('name' => $taxo_name, 'taxo' => $taxo), $options_pt );
+			}	
+		}
 	}
 	
 	function addMenuPage(){

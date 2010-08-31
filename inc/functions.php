@@ -43,7 +43,10 @@ function get_all_fieldsmeta( $post_id = null ){
 		if(count($key)<=1)
 			continue;
 		
-		$metas[ strtolower($cf_pt->option_fields[$key[0]][$key[1]]['title']) ] = unserialize(current($value));
+		$value = current($value);
+		$value = maybe_unserialize($value);
+		
+		$metas[ strtolower($cf_pt->option_fields[$key[0]][$key[1]]['title']) ] = $value;
 	}
 	return $metas;
 }
@@ -94,7 +97,26 @@ function get_all_fieldtaxo( $term_id = null, $taxonomy = null ){
 		if(count($key)<=1)
 			continue;
 		
-		$metas[ strtolower($cf_pt->option_fields[$key[0]][$key[1]]['title']) ] = unserialize(current($value));
+		$value = current($value);
+		$value = maybe_unserialize($value);
+		
+		$metas[ strtolower($cf_pt->option_fields[$key[0]][$key[1]]['title']) ] = $value;
 	}
 	return $metas;
+}
+
+add_action('in_field_form', 'addSlug', 10, 3);
+
+function addSlug( $field, $return, $instance){
+	$slug = esc_attr( $instance['slug'] );
+	?>
+	<p><label for="<?php echo $field->get_field_id('slug'); ?>"><?php _e('Slug:'); ?></label> <input class="widefat" id="<?php echo $field->get_field_id('slug'); ?>" name="<?php echo $field->get_field_name('slug'); ?>" type="text" value="<?php echo $slug; ?>" style="font-style: italic;"/>
+	<br/>
+	<?php if( isset($field->slug) || $field->slug != '' ): ?>
+		<small><?php _e('Meta slug:') ?> <i><?php echo esc_html($field->slug);?></i></small>
+	<?php else:?>
+		<small><?php _e('Default meta slug:') ?> <i><?php echo $field->option_name . '__' . $field->number;?></i></small>
+	<?php endif; ?>
+		</p>
+	<?php
 }

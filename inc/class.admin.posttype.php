@@ -89,7 +89,6 @@ class SimpleCustomTypes_Admin_PostType{
 	}
 	
 	function cf_fields_init() {
-
 		if ( !is_blog_installed() )
 			return;
 		

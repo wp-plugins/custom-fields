@@ -27,46 +27,15 @@ class CF_Admin_Object_Taxo {
 	 * Load JS and CSS need for admin features.
 	 * 
 	 */
-	function initStyleScript() {
+	function initStyleScript( $hook_sufix ) {
 		global $post_type;
-		if ( isset($post_type) ) {
-			// Get current options
-			$current_options = get_option( SCUST_OPTION );
+		if ( $hook_sufix == 'edit-tags.php' ) {
 
-			// Custom taxo ?
-			if ( !isset($current_options['customtypes'][$post_type]) ) {
-				return false;
-			}
-
-			$current_customtype = $current_options['customtypes'][$post_type];
-			if ( !isset($current_customtype['custom']) || !is_array($current_customtype['custom']) || empty($current_customtype['custom']) ) { // Custom fields for this custom type ?
-				return false;
-			}
-			
-			// Flag type in Custom fields ?
-			$flag_light_editor = $flag_media = false;
-			foreach( (array) $current_customtype['custom'] as $field ) {
-				if( $field['type'] == 'editor-light' ) {
-					$flag_light_editor = true;
-				} elseif( $field['type'] == 'image' || $field['type'] == 'media' ) {
-					$flag_media = true;
-				}
-			}
-			
-			if ( $flag_light_editor == true ) {
-				add_action( 'admin_print_footer_scripts', 'wp_tiny_mce', 25 );
-				add_action( 'admin_print_footer_scripts', array(&$this, 'customTinyMCE'), 26 );
-			}
-			
-			if ( $flag_media == true ) {
-				add_action( 'admin_print_footer_scripts', array(&$this, 'addSendToEditor') );
-			}
-			
 			// Add CSS for boxes
 			wp_enqueue_style ( 'simple-custom-types-object', SCUST_URL.'/inc/css/object.css', array(), SCUST_VERSION);
 
 			// Allow composant to add JS/CSS
-			do_action( 'sctype-admin-object-head', $post_type, $current_customtype );
+			do_action( 'sfield-admin-object-head', $post_type, $current_customtype );
 			
 			return true;
 		}

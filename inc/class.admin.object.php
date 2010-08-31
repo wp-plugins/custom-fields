@@ -29,50 +29,15 @@ class CF_Admin_Object {
 	 * Load JS and CSS need for admin features.
 	 * 
 	 */
-	function initStyleScript() {
+	function initStyleScript( $hook_sufix ) {
 		global $post_type;
-		if ( isset($post_type) ) {
+		if ( $hook_sufix == 'post-new.php' ) {
 		
 			// Add CSS for boxes
 			wp_enqueue_style ( 'simple-custom-types-object', SCF_URL.'/inc/css/admin.css', array(), SCF_VERSION);
-			
-			// Get current options
-			$current_options = get_option( SCUST_OPTION );
-
-			// Custom taxo ?
-			if ( !isset($current_options['customtypes'][$post_type]) ) {
-				return false;
-			}
-
-			$current_customtype = $current_options['customtypes'][$post_type];
-			if ( !isset($current_customtype['custom']) || !is_array($current_customtype['custom']) || empty($current_customtype['custom']) ) { // Custom fields for this custom type ?
-				return false;
-			}
-			
-			// Flag type in Custom fields ?
-			$flag_light_editor = $flag_media = false;
-			foreach( (array) $current_customtype['custom'] as $field ) {
-				if( $field['type'] == 'editor-light' ) {
-					$flag_light_editor = true;
-				} elseif( $field['type'] == 'image' || $field['type'] == 'media' ) {
-					$flag_media = true; 
-				}
-			}
-			
-			if ( $flag_light_editor == true ) {
-				add_action( 'admin_print_footer_scripts', 'wp_tiny_mce', 25 );
-				add_action( 'admin_print_footer_scripts', array(&$this, 'customTinyMCE'), 26 );
-			}
-			
-			if ( $flag_media == true ) {
-				add_action( 'admin_print_footer_scripts', array(&$this, 'addSendToEditor') );
-			}
-			
-			
 
 			// Allow composant to add JS/CSS
 			do_action( 'sfield-admin-object-head', $post_type, $current_customtype );
-			
 			return true;
 		}
 		
@@ -229,14 +194,12 @@ class CF_Admin_Object {
 				$field_params = isset($this->pt->cf_registered_fields[$id]['params']) ? $this->pt->cf_registered_fields[$id]['params'] : array();
 				
 				$entries = isset($_POST[$id_base][$number['number']]) ? $_POST[$id_base][$number['number']] : '';
-				
-				$params = array_merge(
-					array( array_merge( $sidebar, array('field_id' => $id, 'field_name' => $field_name, 'entries' => $entries) ) ),
-					(array) $field_params
-				);
+				$params = array_merge( array( array_merge( $sidebar, array('field_id' => $id, 'field_name' => $field_name, 'entries' => $entries) ) ), (array) $field_params );
+										
 				$params[0]['post_id'] = $post->ID;
 				$i = 1;
 				$callback = $this->pt->cf_registered_fields[$id]['save_callback'];
+				
 				if ( is_callable( $callback ) ) {
 					call_user_func_array( $callback, $params);
 					$did_one = true;
