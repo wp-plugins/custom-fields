@@ -112,7 +112,7 @@ function addSlug( $field, $return, $instance){
 	?>
 	<p><label for="<?php echo $field->get_field_id('slug'); ?>"><?php _e('Slug:'); ?></label> <input class="widefat" id="<?php echo $field->get_field_id('slug'); ?>" name="<?php echo $field->get_field_name('slug'); ?>" type="text" value="<?php echo $slug; ?>" style="font-style: italic;"/>
 	<br/>
-	<?php if( isset($field->slug) || $field->slug != '' ): ?>
+	<?php if( isset($field->slug) || !empty($field->slug) ): ?>
 		<small><?php _e('Meta slug:') ?> <i><?php echo esc_html($field->slug);?></i></small>
 	<?php else:?>
 		<small><?php _e('Default meta slug:') ?> <i><?php echo $field->option_name . '__' . $field->number;?></i></small>

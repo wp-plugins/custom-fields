@@ -262,11 +262,18 @@ class CF_Field {
 
 				$instance = $this->update($new_instance, $old_instance);
 				$instance['slug'] = strip_tags($new_instance['slug']);
-				$this->_register_one( $number );
-				if( isset($instance['slug']) && $instance != '')
+				
+				if( isset($instance['slug']) && $instance['slug'] != '')
 					$this->slug = $instance['slug'];
 				else
 					$this->slug = $this->option_name . '__' . $number;
+				
+				if( $new_instance['slug'] != $old_instance['slug'] )
+					$this->regenerateSlug( $new_instance['slug'], $old_instance['slug'], $this );
+				
+				$this->_register_one( $number );
+				
+				
 				$this->pt->update_var('cf_registered_fields');
 				// filters the field's settings before saving, return false to cancel saving (keep the old settings if updating)
 				$instance = apply_filters('field_update_callback', $instance, $new_instance, $old_instance, $this);
@@ -342,24 +349,61 @@ class CF_Field {
 	}
 	
 	function getEntries($args, $number){
+		if( !isset($this->pt->option_fields[$this->option_name][$number]['slug']) ){
+			$this->slug = $this->option_name . '__' . $number;
+		}else{
+			$this->slug = $this->pt->option_fields[$this->option_name][$number]['slug'];
+		}
 		if($args['post_id'] == null && $args['tt_id'] == null)
 			return false;
 		if($args['post_id'] != null)
-			$args['entries'] = get_post_meta($args['post_id'], $this->option_name . '__' . $number, true);
+			$args['entries'] = get_post_meta($args['post_id'], $this->slug, true);
 		elseif($args['tt_id'] != null)
-			$args['entries'] = get_term_taxonomy_meta( $args['tt_id'], $this->option_name . '__' . $number, true );
+			$args['entries'] = get_term_taxonomy_meta( $args['tt_id'], $this->slug, true );
 	}
 	
 	function updateEntries($args, $number){
-		if( !isset($this->slug) ){
+		if( !isset($this->pt->option_fields[$this->option_name][$number]['slug']) ){
 			$this->slug = $this->option_name . '__' . $number;
+		}else{
+			$this->slug = $this->pt->option_fields[$this->option_name][$number]['slug'];
 		}
-		if($args['post_id'] == null && $args['entries'] == null && $args['tt_id'] == null)
+		if($args['entries'] == null || empty($args['entries']) )
 			return false;
 		if($args['post_id'] != null)
 			$entries['entries'] = update_post_meta($args['post_id'], $this->slug, $args['entries']);	
 		elseif($args['tt_id'] != null)
-			$entries['entries'] = update_term_taxonomy_meta($args['tt_id'], $this->slug, $args['entries']);	
+			$entries['entries'] = update_term_taxonomy_meta($args['tt_id'], $this->slug, $args['entries']);
+		else
+			return false;
+		
+		return true;
+	}
+	
+	function regenerateSlug( $new_slug, $old_slug, &$object ){
+		global $wpdb;
+		if( isset($object->pt->taxo) ){ //if taxonomy
+			$metas = $wpdb->get_results( $wpdb->prepare("SELECT * FROM $wpdb->termmeta WHERE meta_key = %s", $old_slug) );
+			if( empty($metas) )
+				continue;
+			foreach( $metas as &$meta ){
+				$meta->meta_key = strip_tags( $new_slug );
+				$id = $meta->meta_id;
+				$meta = (array)$meta;
+				$wpdb->update( $wpdb->termmeta, $meta, array( 'meta_id' => $id ) );
+			}
+			
+		}else{ //If posttype
+			$metas = $wpdb->get_results( $wpdb->prepare("SELECT * FROM $wpdb->postmeta WHERE meta_key = %s", $old_slug) );
+			if( empty($metas) )
+				return false;
+			foreach( $metas as &$meta ){
+				$meta->meta_key = strip_tags( $new_slug );
+				$id = $meta->meta_id;
+				$meta = (array)$meta;
+				$wpdb->update( $wpdb->postmeta, $meta, array( 'meta_id' => $id ) );
+			}
+		}
 	}
 	
 }

@@ -31,7 +31,7 @@ class CF_Admin_Object {
 	 */
 	function initStyleScript( $hook_sufix ) {
 		global $post_type;
-		if ( $hook_sufix == 'post-new.php' ) {
+		if ( $hook_sufix == 'post-new.php' || $hook_sufix == 'post.php' ) {
 		
 			// Add CSS for boxes
 			wp_enqueue_style ( 'simple-custom-types-object', SCF_URL.'/inc/css/admin.css', array(), SCF_VERSION);

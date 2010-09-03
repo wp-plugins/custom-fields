@@ -10,6 +10,7 @@ class CF_Admin {
 	 */
 	function CF_Admin() {
 		add_action( 'init', array(&$this, 'initPostTypeFields') );
+		add_action( 'admin_init', array(&$this, 'update') );
 	}
 	
 	/**
@@ -66,6 +67,77 @@ class CF_Admin {
 		?>
 		<span>Nothing here now</span>
 		<?php
+	}
+	
+	function update(){
+		global $wpdb;
+		$version = get_option('custom-fields-version');
+		
+		if( isset($version) && version_compare($version, '2.0.9') >= 0  ){
+			return false;
+		}
+		foreach( $this->post_type_nav as $post_type ){
+			foreach( $post_type->option_fields as $option_name => $numbers ){
+				foreach( $numbers as $number => $value ){
+					
+					if( !is_numeric($number) )
+						continue;
+						
+					$mid = $option_name . '__' . $number ;
+				
+					$metas = $wpdb->get_results( $wpdb->prepare("SELECT * FROM $wpdb->postmeta WHERE meta_key = %s", $mid) );
+					
+					if( empty($metas) )
+						continue;
+					foreach( $metas as &$meta ){
+						$meta->meta_value = maybe_unserialize( $meta->meta_value );
+						if( is_array($meta->meta_value) && count( $meta->meta_value ) < 2 )
+							$meta->meta_value = current( $meta->meta_value );
+						$id = $meta->meta_id;
+						$meta = (array)$meta;
+						$wpdb->update( $wpdb->postmeta, $meta, array( 'meta_id' => $id ) );
+						
+					}
+					
+				}
+				
+			}
+			
+		}
+		
+		if( is_plugin_active('meta-for-taxonomies/meta-for-taxonomies.php') ){
+			foreach( $this->taxo_nav as $taxo_name ){
+				foreach( $taxo_name->option_fields as $option_name => $numbers ){
+					foreach( $numbers as $number => $value ){
+						
+						if( !is_numeric($number) )
+							continue;
+							
+						$mid = $option_name . '__' . $number ;
+					
+						$metas = $wpdb->get_results( $wpdb->prepare("SELECT * FROM $wpdb->termmeta WHERE meta_key = %s", $mid) );
+						
+						if( empty($metas) )
+							continue;
+						foreach( $metas as &$meta ){
+							$meta->meta_value = maybe_unserialize( $meta->meta_value );
+							if( is_array($meta->meta_value) && count( $meta->meta_value ) < 2 )
+								$meta->meta_value = current( $meta->meta_value );
+							$id = $meta->meta_id;
+							$meta = (array)$meta;
+							$wpdb->update( $wpdb->termmeta, $meta, array( 'meta_id' => $id ) );
+							
+						}
+						
+					}
+					
+				}
+				
+			}
+		}
+		
+		update_option('custom-fields-version', SCF_VERSION);
+		return true;
 	}
 }
 ?>

@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: Custom Fields for WordPress
-Version: 2.0.8
+Version: 2.0.9
 Plugin URI: http://redmine.beapi.fr/projects/show/custom-fields
 Description: This plugin add custom fields for some things on WordPress, blog, term taxonomy and custom object types. Meta for Taxonomies plugin is required to use custom fields with taxonomies.
 Author: Julien Guilmont & Amaury Balmer
@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 // Folder name
-define ( 'SCF_VERSION', '2.0.6' );
+define ( 'SCF_VERSION', '2.0.9' );
 define ( 'SCF_OPTION',  'custom-fields' );
 define ( 'SCF_FOLDER',  'custom-fields' );
 define ( 'FLAG_CACHE',  'Fields' );
