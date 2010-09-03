@@ -19,6 +19,11 @@ The usage is a Widgets like.
 2. Activate the plugin within you WordPress Administration Backend
 3. Go to Post > Fields and add sidebar and drag and drop a "widget" for add field. The menu Taxo field is to manage field in taxonomies (in edit page).
 
+To use in your theme, you can use next functions:
+
+get_fieldmeta( $post_id = null, $name = null, $alone = true) : for posttype
+get_fieldmeta_taxo( $term_id = null, $taxonomy = null, $name = null, $alone = true ) : for taxonomy
+
 == Screenshots ==
 
 1. The field manager page which you can add field, like widget (drag and drop)
