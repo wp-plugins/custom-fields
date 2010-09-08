@@ -385,7 +385,7 @@ class CF_Field {
 		if( isset($object->pt->taxo) ){ //if taxonomy
 			$metas = $wpdb->get_results( $wpdb->prepare("SELECT * FROM $wpdb->termmeta WHERE meta_key = %s", $old_slug) );
 			if( empty($metas) )
-				continue;
+				return false;
 			foreach( $metas as &$meta ){
 				$meta->meta_key = strip_tags( $new_slug );
 				$id = $meta->meta_id;
