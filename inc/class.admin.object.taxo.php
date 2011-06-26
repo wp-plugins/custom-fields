@@ -1,162 +1,80 @@
 <?php
-class CF_Admin_Object_Taxo {
-	private $pt;
+class CF_Admin_Object_Taxo extends Functions {
+	private $_editTags;
 	/*
 	 * Constructor
 	 **/
-	function __construct( $obj_pt ) {
+	function __construct( $options, $objects ) {
+            foreach( $options as $name => &$opt )
+              $this->{$name} = &$opt;
+            foreach( $objects as $name => &$obj )
+                $this->{$name} = &$obj;
 
-		$this->pt = &$obj_pt;
-		// Check Ajax request for display media insert function
-		add_action( 'wp_ajax_insert_custom_field_media', array(&$this, 'checkMediaInsert') );
-		add_action( 'wp_ajax_ct_preview_media', array(&$this, 'checkAjaxPreview') );
-		
-		// Add links on media manager if custom fields need it.
-		add_filter( 'media_meta', array(&$this, 'addMediaLinksOnMeta'), 10, 2 );
+		$this->_editTags = false;
+		//$this->pt = &$obj_pt;
 		
 		// Register Javascript need for custom fields
 		add_action( 'admin_enqueue_scripts', array(&$this, 'initStyleScript'), 10 );
-
-		// Add blocks on write page
-		add_action( $this->pt->taxo->name . '_edit_form_fields', array(&$this, 'loadCustomFields'), 10, 2 );
+		//add_action( 'admin_print_footer_scripts', array(&$this, 'customTinyMCE'), 9999 );
 		
-		add_action( "edited_" . $this->pt->taxo->name, array(&$this, 'saveCustomFields'), 10 , 2);
+		// Add blocks on write page
+		add_action( $this->taxo->name . '_edit_form_fields', array(&$this, 'loadCustomFields'), 10, 2 );
+		
+		add_action( "edited_" . $this->taxo->name, array(&$this, 'saveCustomFields'), 10 , 2);
 	}
-
+	
 	/**
 	 * Load JS and CSS need for admin features.
-	 * 
+	 *
 	 */
 	function initStyleScript( $hook_sufix ) {
-		global $post_type;
+		global $taxonomy;
 		if ( $hook_sufix == 'edit-tags.php' ) {
 
-			// Add CSS for boxes
-			wp_enqueue_style ( 'simple-custom-types-object', SCUST_URL.'/inc/css/object.css', array(), SCUST_VERSION);
+                    if( $taxonomy != $this->taxo->name )
+                            return false;
 
-			// Allow composant to add JS/CSS
-			do_action( 'sfield-admin-object-head', $post_type, $current_customtype );
+                    foreach( $this->sidebars_fields as $name => $sidebar ){
+                        if($name == 'cf_inactive_fields' || empty($sidebar) || !is_array($sidebar))
+                            continue;
+
+                        foreach( $sidebar as $widget ){
+                            $idbase = $this->cf_registered_fields[$widget]['classname'];
+                            // Allow composant to add JS/CSS
+                            do_action( 'cf-fields-scriptstyles-'.$idbase );
+                        }
+                    }
+
+
+
+			$this->_editTags = true;
+			// Add CSS for boxes
+			wp_enqueue_style ( 'simple-custom-types-object', SCF_URL.'/inc/css/admin.css', array(), SCF_VERSION);
+			
+			wp_enqueue_script("tiny_mce", includes_url('js/tinymce').'/tiny_mce.js');
 			
 			return true;
 		}
 		
 		return false;
-	}	
-	
-	/**
-	 * Add a javascript function on footer for put value on hidden field and build preview.
-	 * 
-	 */
-	function addSendToEditor() {
-		?>
-		<script type="text/javascript">
-			// send html to the post editor
-			function my_send_to_editor(h) {
-				var datas = h.split('|');
-
-				// Set attachment ID on hidden input
-				jQuery('input[name='+datas[0]+']').val( datas[1] );
-
-				// Use Ajax for load preview
-				jQuery('#preview-'+datas[0]).load( '<?php echo admin_url('admin-ajax.php'); ?>?action=ct_preview_media', { 'preview_id_media': datas[1], 'field_name': datas[0] }  );
-
-				// Close thickbox !
-				tb_remove();
-			}
-		</script>
-		<?php
 	}
 	
-	/**
-	 * Display a empty page with only JS and call parent function send to editor
-	 *
-	 */
-	function checkMediaInsert() {
-		echo '<script type="text/javascript">' . "\n";
-			echo 'var win = window.dialogArguments || opener || parent || top;' . "\n";
-			echo "win.my_send_to_editor('".addslashes($_GET['field'].'|'.$_GET['id'])."');" . "\n";
-		echo '</script>' . "\n";
-		die();
-	}
-	
-	/**
-	 * Add links on media management popup
-	 * 
-	 * @return string
-	 */
-	function addMediaLinksOnMeta( $media_dims, $attachment = null ) {
-		if ( $attachment == false ) {
-			return $media_dims;
-		}
-		
-		if ( isset($_GET['post_id']) ) {
-			$_post = get_post( $_GET['post_id'] );
-		} else {
-			$_post = get_post( $attachment->post_parent );	
-		}
-		
-		if ( $_post == false ) {
-			return $media_dims;
-		}
-		
-		$post_type = $_post->post_type;
-		if ( empty($post_type) ) {
-			return $media_dims;
-		}
-
-		// Custom images on CS ?
-		$current_options = get_option( SCUST_OPTION );
-
-		// Custom taxo ?
-		if ( !isset($current_options['customtypes'][$post_type]) ) {
-			return $media_dims;
-		}
-
-		$current_customtype = $current_options['customtypes'][$post_type];
-		if ( !is_array($current_customtype['custom']) || empty($current_customtype['custom']) ) { // Custom fields for this custom type ?
-			return $media_dims;
-		}
-		
-		// Flag type in Custom fields ?
-		$fields = array();
-		foreach( (array) $current_customtype['custom'] as $field ) {
-			if( $field['type'] == 'image' || $field['type'] == 'media' ) {
-				$fields[] = $field;
-			}
-		}
-		
-		if ( empty($fields) ) {
-			return $media_dims;
-		}
-		
-		$media_dims .= ' ';
-		$media_dims .= '<script type="text/javascript">' . "\n";
-			$media_dims .= 'jQuery(document).ready(function() {' . "\n";
-				foreach( (array) $fields as $field ):
-					$media_dims .= 'jQuery(\'input[name=send['.$attachment->ID.']]\').after(\'<a class="custom-add" style="margin:0 5px;" href="'.admin_url('admin-ajax.php').'?action=insert_custom_field_media&field='.esc_attr($field['name']).'&id='.$attachment->ID.'">'.esc_js(sprintf(__('Use for %s', 'simple-customtypes'), $field['label'])).'</a>\');' . "\n";
-				endforeach;
-			$media_dims .= '});' . "\n";
-		$media_dims .= '</script>' . "\n";
-	
-		return $media_dims;
-	}
-
 	/**
 	 * Save datas
-	 * 
+	 *
 	 * @param $post_ID
 	 * @param $post
 	 * @return boolean
 	 */
  	function saveCustomFields( $term_id, $tt_id )  {
- 		
-		foreach( $this->pt->cf_registered_sidebars as $index => $_s){
-			//var_dump($index);
+            if( !isset($this->cf_registered_sidebars) || empty($this->cf_registered_sidebars) )
+                    return false;
+		foreach( $this->cf_registered_sidebars as $index => $_s) {
 			if ( is_int($index) ) {
 				$index = "sidebar-$index";
 			} else {
 				$index = sanitize_title($index);
-				foreach ( (array) $this->pt->cf_registered_sidebars as $key => $value ) {
+				foreach ( (array) $this->cf_registered_sidebars as $key => $value ) {
 					if ( sanitize_title($value['name']) == $index ) {
 						$index = $key;
 						break;
@@ -164,54 +82,51 @@ class CF_Admin_Object_Taxo {
 				}
 			}
 			
-			$sidebars_fields = $this->pt->cf_field_sidebar->cf_get_sidebars_fields();
-	
-			if ( empty($this->pt->cf_registered_sidebars[$index]) || !array_key_exists($index, $sidebars_fields) || !is_array($sidebars_fields[$index]) || empty($sidebars_fields[$index]) )
+			$sidebars_fields = $this->cf_get_sidebars_fields();
+			if ( empty($this->cf_registered_sidebars[$index]) || !array_key_exists($index, $sidebars_fields) || !is_array($sidebars_fields[$index]) || empty($sidebars_fields[$index]) )
 				continue;
 			
-			$sidebar = $this->pt->cf_registered_sidebars[$index];
-	
 			$did_one = false;
 			$params = array();
-			$i = 0;
-			
-			
 			foreach ( (array) $sidebars_fields[$index] as $id ) {
-	
-				if ( !isset($this->pt->cf_registered_fields[$id]) ) continue;
+				if ( !isset($this->cf_registered_fields[$id]) )
+					continue;
 				
-				//var_dump(array_keys($this->pt->cf_registered_fields[$id]));
-				$number = current($this->pt->cf_registered_fields[$id]['params']);
-				//var_dump($number['number']);
-				$id_base = str_ireplace('_', '-', $this->pt->cf_registered_fields[$id]['classname']);
-				//var_dump( $_POST[$id_base][$number['number']] );
-				$params = array_merge(
-					array( array_merge( $sidebar, array('field_id' => $id, 'field_name' => $this->pt->cf_registered_fields[$id]['name'], 'entries' => $_POST[$id_base][$number['number']]) ) ),
-					(array) $this->pt->cf_registered_fields[$id]['params']
-				);
+				$number = current($this->cf_registered_fields[$id]['params']);
+				$id_base = str_ireplace('_', '-', $this->cf_registered_fields[$id]['classname']);
+
+				$entries = array();
+				if ( isset($_FILES[$id_base]['name'][$number['number']]) ) {
+					$entries = $this->formatFilesArray($_FILES, $id_base, $number['number']);
+				}
+				if( isset($_POST[$id_base][$number['number']]) ) {
+					$entries = array_merge( $entries, $_POST[$id_base][$number['number']] );
+				}
+					
+				$params = array_merge( array( array_merge( $this->cf_registered_sidebars[$index], array('field_id' => $id, 'field_name' => $this->cf_registered_fields[$id]['name'], 'entries' => $entries) ) ), (array) $this->cf_registered_fields[$id]['params'] );
+				
 				$params[0]['term_id'] = $term_id;
 				$params[0]['tt_id'] = $tt_id;
-				$i = 1;
-				$callback = $this->pt->cf_registered_fields[$id]['save_callback'];
-				if ( is_callable( $callback ) ) {
-					call_user_func_array( $callback, $params);
+				
+				if ( is_callable( $this->cf_registered_fields[$id]['save_callback'] ) ) {
+					call_user_func_array( $this->cf_registered_fields[$id]['save_callback'], $params);
 					$did_one = true;
 				}
 			}
-
+		
 		}
 		return $did_one;
-
+	
 	}
 	
 	/**
 	 * Check if post type is load ?
-	 * 
+	 *
 	 * @param string $post_type
 	 * @return boolean
 	 */
 	function initCustomFields( $post_type = '' ) {
-		if ( isset($post_type) && !empty($post_type) && $post_type == $this->pt->post_type) {
+		if ( isset($post_type) && !empty($post_type) && $post_type == $this->post_type) {
 			return $this->loadCustomFields( $post_type );
 		}
 		return false;
@@ -219,20 +134,22 @@ class CF_Admin_Object_Taxo {
 	
 	/**
 	 * Group custom fields for build boxes.
-	 * 
+	 *
 	 * @param $post_type
 	 * @return boolean
 	 */
-	function loadCustomFields( $tag, $taxonomy ) {
+	function loadCustomFields( $tag ) {
 		//$index = 'top-sidebar-' . $post_type;
-		foreach( $this->pt->cf_registered_sidebars as $index => $_s){
+            if( !isset($this->cf_registered_sidebars) || empty($this->cf_registered_sidebars) )
+                    return false;
+		foreach( $this->cf_registered_sidebars as $index => $_s) {
 			if( $index == 'cf_inactive_fields' )
 				continue;
 			if ( is_int($index) ) {
 				$index = "sidebar-$index";
 			} else {
 				$index = sanitize_title($index);
-				foreach ( (array) $this->pt->cf_registered_sidebars as $key => $value ) {
+				foreach ( (array) $this->cf_registered_sidebars as $key => $value ) {
 					if ( sanitize_title($value['name']) == $index ) {
 						$index = $key;
 						break;
@@ -240,62 +157,60 @@ class CF_Admin_Object_Taxo {
 				}
 			}
 			
-			$sidebars_fields = $this->pt->cf_field_sidebar->cf_get_sidebars_fields();
-	
-			if ( empty($this->pt->cf_registered_sidebars[$index]) || !array_key_exists($index, $sidebars_fields) || !is_array($sidebars_fields[$index]) || empty($sidebars_fields[$index]) )
+			$sidebars_fields = $this->cf_get_sidebars_fields();
+			
+			if ( empty($this->cf_registered_sidebars[$index]) || !array_key_exists($index, $sidebars_fields) || !is_array($sidebars_fields[$index]) || empty($sidebars_fields[$index]) )
 				continue;
 			
-			$sidebar = $this->pt->cf_registered_sidebars[$index];
-	
+			$sidebar = $this->cf_registered_sidebars[$index];
+			
 			$did_one = false;
 			$params = array();
 			$i = 0;
 			foreach ( (array) $sidebars_fields[$index] as $id ) {
-
-				if ( !isset($this->pt->cf_registered_fields[$id]) ) continue;
-	
-				$params = array_merge(
-					array( array_merge( $sidebar, array('field_id' => $id, 'field_name' => $this->pt->cf_registered_fields[$id]['name']) ) ),
-					(array) $this->pt->cf_registered_fields[$id]['params']
-				);
-
-				$i = 1;
 				
+				if ( !isset($this->cf_registered_fields[$id]) ) continue;
+				
+				//$params = array_merge(
+				//	array( array_merge( $sidebar, array('field_id' => $id, 'field_name' => $this->pt->cf_registered_fields[$id]['name']) ) ),
+				//	(array) $this->pt->cf_registered_fields[$id]['params']
+				//);
+				
+				$i = 1;
+			
 			}
 			if( $i == 0 )
 				continue;
-
-			$p = current($params);
+			
 			$this->genericRenderBoxes($tag, array( $index ));
 			
-			//add_meta_box($p['id'], $p['name'], array(&$this, 'genericRenderBoxes'), $post_type, 'advanced', 'default', array( $index ) );
 		}
 		return $did_one;
 	}
 	
 	/**
 	 * Generic boxes who allow to build xHTML for each box
-	 * 
+	 *
 	 * @param $post
 	 * @param $box
 	 * @return boolean
 	 */
 	function genericRenderBoxes( $tag = null, $box = null ) {
-
+		
 		$index = current($box);
-		$sidebars_fields = $this->pt->cf_field_sidebar->cf_get_sidebars_fields();
-		$sidebar = $this->pt->cf_registered_sidebars[$index];
+		$sidebars_fields = $this->cf_get_sidebars_fields();
+		$sidebar = $this->cf_registered_sidebars[$index];
 		foreach ( (array) $sidebars_fields[$index] as $id ) {
-
-			if ( !isset($this->pt->cf_registered_fields[$id]) ) continue;
-
+			
+			if ( !isset($this->cf_registered_fields[$id]) ) continue;
+			
 			$params = array_merge(
-				array( array_merge( $sidebar, array('field_id' => $id, 'field_name' => $this->pt->cf_registered_fields[$id]['name']) ) ),
-				(array) $this->pt->cf_registered_fields[$id]['params']
+				array( array_merge( $sidebar, array('field_id' => $id, 'field_name' => $this->cf_registered_fields[$id]['name']) ) ),
+				(array) $this->cf_registered_fields[$id]['params']
 			);
 			// Substitute HTML id and class attributes into before_widget
 			$classname_ = '';
-			foreach ( (array) $this->pt->cf_registered_fields[$id]['classname'] as $cn ) {
+			foreach ( (array) $this->cf_registered_fields[$id]['classname'] as $cn ) {
 				if ( is_string($cn) )
 					$classname_ .= '_' . $cn;
 				elseif ( is_object($cn) )
@@ -306,100 +221,20 @@ class CF_Admin_Object_Taxo {
 			$params[0]['before_field'] = sprintf($params[0]['before_field'], $id, $classname_);
 			$params[0]['tt_id'] = $tag->term_taxonomy_id;
 			$params[0]['term_id'] = $tag->term_id;
+                        $params[0]['taxonomy'] = $tag->taxonomy;
 			//$params = apply_filters( 'dynamic_sidebar_params', $params );
 			
-			$callback = $this->pt->cf_registered_fields[$id]['callback'];
-			do_action( 'dynamic_sidebar', $this->pt->cf_registered_fields[$id] );
+			$callback = $this->cf_registered_fields[$id]['callback'];
+			do_action( 'dynamic_sidebar', $this->cf_registered_fields[$id] );
 			if ( is_callable( $callback ) ) {
 				call_user_func_array( $callback, $params);
 				$did_one = true;
 			}
+			
 		}
-	
+		
 		return true;
 	}
 	
-	/**
-	 * Build HTML for preview the media
-	 * 
-	 * @param $current_value
-	 * @param $field_name
-	 * @return string
-	 */
-	function getPreviewMedia( $current_value = 0, $field_name = '' ) {
-		$output = '';
-		if ( (int) $current_value != 0 && $thumb_url = wp_get_attachment_image_src( $current_value ) ) {
-
-			$post = get_post($current_value);
-			$title = esc_attr($post->post_title);
-			$title = ( !empty( $title ) ) ? $title : basename($post->guid);
-
-			$output .= '<img src="'.$thumb_url[0].'" alt="'.esc_attr($title).'" style="float:left;margin:0 10px 0 0" />';
-			$output .= wp_html_excerpt($title, 60);
-			$output .= '<br /> <label><input type="checkbox" name="delete-'.esc_attr($field_name).'" class="delete-media" value="'.$current_value.'" /> '.__('Delete', 'simple-taxoxomy').'</label>' . "\n";
-			$output .= '<div class="clear"></div>' . "\n";
-
-		}
-
-		return $output;
-	}
-	
-	/**
-	 * Allow to insert preview HTML with Ajax call.
-	 * 
-	 */
-	function checkAjaxPreview() {
-		echo $this->getPreviewMedia( (int) $_REQUEST['preview_id_media'], stripslashes($_REQUEST['field_name']) );
-		exit();
-	}
-	
-	/**
-	 * Display TinyMCE JS for init light editor.
-	 * 
-	 */
-	function customTinyMCE() {
-		$mce_locale = ( '' == get_locale() ) ? 'en' : strtolower( substr(get_locale(), 0, 2) ); // only ISO 639-1
-		$mce_spellchecker_languages = apply_filters('mce_spellchecker_languages', '+English=en,Danish=da,Dutch=nl,Finnish=fi,French=fr,German=de,Italian=it,Polish=pl,Portuguese=pt,Spanish=es,Swedish=sv');
-		?>
-		<script type="text/javascript">
-		/* <![CDATA[ */
-		tinyMCE.init({
-			mode : "specific_textareas",
-			editor_selector : "mceEditor",
-			width:"100%", 
-			theme:"advanced", 
-			skin:"wp_theme", 
-			theme_advanced_buttons1:"bold,italic,strikethrough,|,bullist,numlist,blockquote,|,justifyleft,justifycenter,justifyright,|,link,unlink,wp_more,|,spellchecker,fullscreen,wp_adv", 	
-			theme_advanced_buttons2:"formatselect,underline,justifyfull,forecolor,|,pastetext,pasteword,removeformat,|,media,charmap,|,outdent,indent,|,undo,redo,wp_help,|,code", 	
-			theme_advanced_buttons3:"",
-			theme_advanced_buttons4:"", 
-			language:"<?php echo $mce_locale; ?>",
-			spellchecker_languages:"<?php echo $mce_spellchecker_languages; ?>",
-			theme_advanced_toolbar_location:"top", 
-			theme_advanced_toolbar_align:"left", 
-			theme_advanced_statusbar_location:"bottom", 
-			theme_advanced_resizing:"1", 
-			theme_advanced_resize_horizontal:"", 
-			dialog_type:"modal", 
-			relative_urls:"", 
-			remove_script_host:"", 
-			convert_urls:"", 
-			apply_source_formatting:"", 
-			remove_linebreaks:"1", 
-			gecko_spellcheck:"1", 
-			entities:"38,amp,60,lt,62,gt", 
-			accessibility_focus:"1", 
-			tabfocus_elements:"major-publishing-actions", 
-			media_strict:"", 
-			paste_remove_styles:"1", 
-			paste_remove_spans:"1", 
-			paste_strip_class_attributes:"all", 
-			wpeditimage_disable_captions:"", 
-			plugins:"safari,inlinepopups,spellchecker,paste,wordpress,media,fullscreen,wpeditimage,wpgallery,tabfocus"
-		});
-		/* ]]> */
-		</script>
-		<?php
-	}
 }
 ?>

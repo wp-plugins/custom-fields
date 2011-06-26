@@ -37,7 +37,7 @@ $help .= '<p>' . __('<a href="http://codex.wordpress.org/Appearance_fields_SubPa
 $help .= '<p>' . __('<a href="http://wordpress.org/support/">Support Forums</a>') . '</p>';
 add_contextual_help($current_screen, $help);
 // register the inactive_fields area as sidebar
-$this->pt->cf_sidebar->cf_register_sidebar(array(
+$this->cf_sidebar->cf_register_sidebar(array(
 	'name' => __('Inactive fields', 'custom_fields'),
 	'id' => 'cf_inactive_fields',
 	'description' => '',
@@ -48,31 +48,11 @@ $this->pt->cf_sidebar->cf_register_sidebar(array(
 ));
 
 // These are the fields grouped by sidebar
-$this->pt->sidebars_fields = $this->pt->cf_field_sidebar->cf_get_sidebars_fields();
-if ( empty( $this->pt->sidebars_fields ) )
-	$this->pt->sidebars_fields = $this->pt->cf_field_manager->cf_get_field_defaults();
+$this->sidebars_fields = $this->cf_get_sidebars_fields();
+if ( empty( $this->sidebars_fields ) )
+	$this->sidebars_fields = $this->cf_get_field_defaults();
 // look for "lost" fields, this has to run at least on each theme change
 $this->retrieve_fields();
-/*
-if ( count($this->pt->cf_registered_sidebars) == 1 ) {
-	// If only "wp_inactive_fields" is defined the theme has no sidebars, die.
-	require_once( './admin-header.php' );
-?>
-
-	<div class="wrap">
-	<?php screen_icon(); ?>
-	<h2><?php echo esc_html( $title ); ?></h2>
-		<div class="error">
-			<p><?php _e( 'No Sidebars Defined' ); ?></p>
-		</div>
-		<p><?php _e( 'The theme you are currently using isn&#8217;t field-aware, meaning that it has no sidebars that you are able to change. For information on making your theme field-aware, please <a href="http://codex.wordpress.org/fieldizing_Themes">follow these instructions</a>.' ); ?></p>
-	</div>
-
-<?php
-	require_once( './admin-footer.php' );
-	exit;
-}
-*/
 
 // We're saving a field without js
 if ( isset($_POST['savefield']) || isset($_POST['removefield']) ) {
@@ -131,42 +111,40 @@ if ( isset($_POST['savefield']) || isset($_POST['removefield']) ) {
 		array_splice( $GLOBALS['sidebars_fields'][$sidebar_id], $position, 0, $field_id );
 	}
 
-	cf_set_sidebars_fields($GLOBALS['sidebars_fields']);
+	$this->cf_set_sidebars_fields($GLOBALS['sidebars_fields']);
 	wp_redirect('fields.php?message=0');
 	exit;
 }
-
-
 // Output the field form without js
 if ( isset($_GET['editfield']) && $_GET['editfield'] ) {
 	$field_id = $_GET['editfield'];
 
 	if ( isset($_GET['addnew']) ) {
 		// Default to the first sidebar
-		$sidebar = array_shift( $keys = array_keys($this->pt->cf_registered_sidebars) );
+		$sidebar = array_shift( $keys = array_keys($this->cf_registered_sidebars) );
 
 		if ( isset($_GET['base']) && isset($_GET['num']) ) { // multi-field
 			// Copy minimal info from an existing instance of this field to a new instance
-			foreach ( $this->pt->cf_registered_field_controls as $control ) {
+			foreach ( $this->cf_registered_field_controls as $control ) {
 				if ( $_GET['base'] === $control['id_base'] ) {
 					$control_callback = $control['callback'];
 					$multi_number = (int) $_GET['num'];
 					$control['params'][0]['number'] = -1;
 					$field_id = $control['id'] = $control['id_base'] . '-' . $multi_number;
-					$this->pt->cf_registered_field_controls[$control['id']] = $control;
+					$this->cf_registered_field_controls[$control['id']] = $control;
 					break;
 				}
 			}
 		}
 	}
 
-	if ( isset($this->pt->cf_registered_field_controls[$field_id]) && !isset($control) ) {
-		$control = $this->pt->cf_registered_field_controls[$field_id];
+	if ( isset($this->cf_registered_field_controls[$field_id]) && !isset($control) ) {
+		$control = $this->cf_registered_field_controls[$field_id];
 		$control_callback = $control['callback'];
-	} elseif ( !isset($this->pt->cf_registered_field_controls[$field_id]) && isset($cf_registered_fields[$field_id]) ) {
+	} elseif ( !isset($this->cf_registered_field_controls[$field_id]) && isset($cf_registered_fields[$field_id]) ) {
 		$name = esc_html( strip_tags($cf_registered_fields[$field_id]['name']) );
 	}
-	$control['params'][0]['post_type'] = $this->pt->post_type;
+	$control['params'][0]['post_type'] = $this->post_type;
 	if ( !isset($name) )
 		$name = esc_html( strip_tags($control['name']) );
 
@@ -188,38 +166,38 @@ if ( isset($_GET['editfield']) && $_GET['editfield'] ) {
 	<h2><?php echo esc_html( $title ); ?></h2>
 	<div class="editfield"<?php echo $width; ?>>
 	<h3><?php printf( __( 'field %s', 'custom_fields' ), $name ); ?></h3>
-
 	<form action="fields.php" method="post">
 	<div class="field-inside">
+           
 <?php
 	if ( is_callable( $control_callback ) )
 		call_user_func_array( $control_callback, $control['params'] );
 	else
-		echo '<p>' . __('There are no options for this field.') . "</p>\n"; ?>
+		echo '<p>' . __('There are no options for this field.', 'custom_fields') . "</p>\n"; ?>
 	</div>
 
 	<p class="describe"><?php _e('Select both the sidebar for this field and the position of the field in that sidebar.', 'custom_fields'); ?></p>
 	<div class="field-position">
 	<table class="widefat"><thead><tr><th><?php _e('Sidebar'); ?></th><th><?php _e('Position'); ?></th></tr></thead><tbody>
 <?php
-	foreach ( $this->pt->cf_registered_sidebars as $sbname => $sbvalue ) {
+	foreach ( $this->cf_registered_sidebars as $sbname => $sbvalue ) {
 		echo "\t\t<tr><td><label><input type='radio' name='sidebar' value='" . esc_attr($sbname) . "'" . checked( $sbname, $sidebar, false ) . " /> $sbvalue[name]</label></td><td>";
 		if ( 'cf_inactive_fields' == $sbname ) {
 			echo '&nbsp;';
 		} else {
-			if ( !isset($this->pt->sidebars_fields[$sbname]) || !is_array($this->pt->sidebars_fields[$sbname]) ) {
+			if ( !isset($this->sidebars_fields[$sbname]) || !is_array($this->sidebars_fields[$sbname]) ) {
 				$j = 1;
-				$this->pt->sidebars_fields[$sbname] = array();
+				$this->sidebars_fields[$sbname] = array();
 			} else {
-				$j = count($this->pt->sidebars_fields[$sbname]);
-				if ( isset($_GET['addnew']) || !in_array($field_id, $this->pt->sidebars_fields[$sbname], true) )
+				$j = count($this->sidebars_fields[$sbname]);
+				if ( isset($_GET['addnew']) || !in_array($field_id, $this->sidebars_fields[$sbname], true) )
 					$j++;
 			}
 			$selected = '';
 			echo "\t\t<select name='{$sbname}_position'>\n";
 			echo "\t\t<option value=''>" . __('&mdash; Select &mdash;') . "</option>\n";
 			for ( $i = 1; $i <= $j; $i++ ) {
-				if ( in_array($field_id, $this->pt->sidebars_fields[$sbname], true) )
+				if ( in_array($field_id, $this->sidebars_fields[$sbname], true) )
 					$selected = selected( $i, $key + 1, false );
 				echo "\t\t<option value='$i'$selected> $i </option>\n";
 			}
@@ -262,7 +240,7 @@ $errors = array(
 
 require_once( './admin-header.php' ); ?>
 
-<div class="wrap">
+<div id="page-fields" class="wrap">
 <?php screen_icon(); ?>
 <h2><?php echo esc_html( $title ); ?></h2>
 
@@ -276,6 +254,46 @@ require_once( './admin-header.php' ); ?>
 <?php do_action( 'fields_admin_page' ); ?>
 <div class="field-liquid-left">
 <div id="fields-left">
+
+<div class="add_sidebar fields-holder-wrap closed"><div>
+<h3><span><input type="text" value="<?php _e('More sidebar'); ?>" name="add_sidebar_name"/><input type="submit" value="OK" name="add_sidebar_submit"/></span></h3>
+</div>
+</div>
+<?php
+$i = 0;
+foreach ( $this->cf_registered_sidebars as $sidebar => $registered_sidebar ) {
+	if ( 'cf_inactive_fields' == $sidebar )
+		continue;
+	$closed = $i ? ' closed' : ''; ?>
+	<div class="fields-holder-wrap<?php echo $closed; ?>">
+	<div class="sidebar-name">
+	<div class="sidebar-name-arrow"><br /></div>
+	<h3><?php echo esc_html( $registered_sidebar['name'] ); ?>
+	<span>
+		<img src="<?php echo esc_url( admin_url( 'images/wpspin_dark.gif' ) ); ?>" class="ajax-feedback" title="" alt="" />
+	</span></h3>
+        <div style="text-align: center;display:none;margin-bottom:5px" class="rename">
+            <input type="hidden" name="attr_sidebar" value="<?php echo $registered_sidebar['id']?>"/>
+            <input type="text" style="width: 70%;" name="rename_sidebar" value="<?php echo esc_html( $registered_sidebar['name'] ); ?>"/>
+            <input type="submit" class="submit-rename" value="OK"/>
+        </div></div>
+        <div class="sidebar-options">
+            <input type="hidden" name="attr_sidebar" value="<?php echo $registered_sidebar['id']?>"/>
+            <input type="hidden" name="del_sidebar" value="-" class="del_sidebar"/>
+            <a href="" class="edit-sidebar-link"><?php _e('Edit', 'custom_fields'); ?></a>
+            <a href="" class="remove-sidebar-link"><?php _e('Delete', 'custom_fields'); ?></a>
+        </div>
+	<?php $this->cf_field_control->cf_list_field_controls( $sidebar ); // Show the control forms for each of the fields in this sidebar ?>
+            <div class="clear"></div>
+        </div>
+<?php
+	$i++;
+} ?>
+</div>
+</div>
+
+<div class="field-liquid-right">
+<div id="fields-right">
 	<div id="available-fields" class="fields-holder-wrap">
 		<div class="sidebar-name">
 		<div class="sidebar-name-arrow"><br /></div>
@@ -283,7 +301,7 @@ require_once( './admin-header.php' ); ?>
 		<div class="field-holder">
 		<p class="description"><?php _e('Drag fields from here to a sidebar on the right to activate them. Drag fields back here to deactivate them and delete their settings.', 'custom_fields'); ?></p>
 		<div id="field-list">
-		<?php $this->pt->cf_field_manager->cf_list_fields(); ?>
+		<?php $this->cf_field_manager->cf_list_fields(); ?>
 		</div>
 		<br class='clear' />
 		</div>
@@ -297,43 +315,14 @@ require_once( './admin-header.php' ); ?>
 		<span><img src="<?php echo esc_url( admin_url( 'images/wpspin_light.gif' ) ); ?>" class="ajax-feedback" title="" alt="" /></span></h3></div>
 		<div class="field-holder inactive">
 		<p class="description"><?php _e('Drag fields here to remove them from the sidebar but keep their settings.', 'custom_fields'); ?></p>
-		<?php $this->pt->cf_field_control->cf_list_field_controls('cf_inactive_fields'); ?>
+		<?php $this->cf_field_control->cf_list_field_controls('cf_inactive_fields'); ?>
 		<br class="clear" />
 		</div>
 	</div>
 </div>
 </div>
-
-<div class="field-liquid-right">
-<div id="fields-right">
-<div class="add_sidebar fields-holder-wrap closed"><div>
-<h3><span><input type="text" value="<?php _e('More sidebar'); ?>" name="add_sidebar_name"/><input type="submit" value="OK" name="add_sidebar_submit"/></span></h3>
-</div>
-</div>
-<?php
-$i = 0;
-foreach ( $this->pt->cf_registered_sidebars as $sidebar => $registered_sidebar ) {
-	if ( 'cf_inactive_fields' == $sidebar )
-		continue;
-	$closed = $i ? ' closed' : ''; ?>
-	<div class="fields-holder-wrap<?php echo $closed; ?>">
-	<div class="sidebar-name">
-	<div class="sidebar-name-arrow"><br /></div>
-	<h3><?php echo esc_html( $registered_sidebar['name'] ); ?>
-	<span>
-		<img src="<?php echo esc_url( admin_url( 'images/wpspin_dark.gif' ) ); ?>" class="ajax-feedback" title="" alt="" />
-		<input type="hidden" name="attr_sidebar" value="<?php echo $registered_sidebar['id']?>"/>
-		<input type="submit" name="del_sidebar" value="-" class="del_sidebar"/>
-	</span></h3></div>
-	<?php $this->pt->cf_field_control->cf_list_field_controls( $sidebar ); // Show the control forms for each of the fields in this sidebar ?>
-	</div>
-<?php
-	$i++;
-} ?>
-</div>
-</div>
 <form action="" method="post">
-<input type="hidden" name="post_type" class="post_type" value="<?php echo esc_attr($this->pt->post_type);?>" />
+<input type="hidden" name="post_type" class="post_type" value="<?php echo esc_attr($this->post_type);?>" />
 <?php wp_nonce_field( 'save-sidebar-fields', '_wpnonce_fields', false ); ?>
 </form>
 

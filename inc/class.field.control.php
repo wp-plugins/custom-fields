@@ -1,18 +1,21 @@
 <?php
-class CF_Field_Controle{
-	private $pt;
-	
-	function __construct( $obj_pt ){
-		$this->pt = &$obj_pt;
+class CF_Field_Control extends Functions{
+
+        protected static $class = __CLASS__;
+        
+	function __construct( $options, $objects ) {
+                foreach( $options as $name => &$opt )
+                    $this->{$name} = &$opt;
+                foreach( $objects as $name => &$obj )
+                	$this->{$name} = &$obj;
 	}
 	
 	function cf_field_control( $sidebar_args ) {
 		$field_id = $sidebar_args['field_id'];
 		$sidebar_id = isset($sidebar_args['id']) ? $sidebar_args['id'] : false;
-		$key = $sidebar_id ? array_search( $field_id, $this->pt->sidebars_fields[$sidebar_id] ) : '-1'; // position of field in sidebar
-		$control = isset($this->pt->cf_registered_field_controls[$field_id]) ? $this->pt->cf_registered_field_controls[$field_id] : array();
-		
-		$field = $this->pt->cf_registered_fields[$field_id];
+		$key = $sidebar_id ? array_search( $field_id, $this->sidebars_fields[$sidebar_id] ) : '-1'; // position of field in sidebar
+		$control = isset($this->cf_registered_field_controls[$field_id]) ? $this->cf_registered_field_controls[$field_id] : array();
+		$field = $this->cf_registered_fields[$field_id];
 	
 		$id_format = $field['id'];
 		$field_number = isset($control['params'][0]['number']) ? $control['params'][0]['number'] : '';
@@ -40,9 +43,9 @@ class CF_Field_Controle{
 			if ( isset($control['id_base']) )
 				$id_format = $control['id_base'] . '-__i__';
 		}
-		$control['params'][0]['post_type'] = $this->pt->post_type;
-		$this->pt->cf_registered_fields[$field_id]['callback'] = $this->pt->cf_registered_fields[$field_id]['_callback'];
-		unset($this->pt->cf_registered_fields[$field_id]['_callback']);
+		$control['params'][0]['post_type'] = $this->post_type;
+		$this->cf_registered_fields[$field_id]['callback'] = $this->cf_registered_fields[$field_id]['_callback'];
+		unset($this->cf_registered_fields[$field_id]['_callback']);
 	
 		$field_title = esc_html( strip_tags( $sidebar_args['field_name'] ) );
 		$has_form = 'noform';
@@ -79,7 +82,7 @@ class CF_Field_Controle{
 			<a class="field-control-close" href="#close"><?php _e('Close'); ?></a>
 			</div>
 			<div class="alignright<?php if ( 'noform' === $has_form ) echo ' field-control-noform'; ?>">
-			<img src="<?php echo esc_url( admin_url( 'images/cfspin_light.gif' ) ); ?>" class="ajax-feedback " title="" alt="" />
+			<img src="<?php echo esc_url( SCF_URL . '/inc/img/cfspin_light.gif' ); ?>" class="ajax-feedback " title="" alt="" />
 			<input type="submit" name="savefield" class="button-primary field-control-save" value="<?php esc_attr_e('Save'); ?>" />
 			</div>
 			<br class="clear" />
@@ -88,31 +91,18 @@ class CF_Field_Controle{
 		</div>
 	
 		<div class="field-description">
-	<?php echo ( $field_description = $this->pt->cf_field_manager->cf_field_description($field_id) ) ? "$field_description\n" : "$field_title\n"; ?>
+	<?php echo ( $field_description = $this->cf_field_description($field_id) ) ? "$field_description\n" : "$field_title\n"; ?>
 		</div>
 	<?php
 		echo $sidebar_args['after_field'];
 		return $sidebar_args;
 	}
 	
-	function cf_list_field_controls_dynamic_sidebar( $params ) {
-		static $i = 0;
-		$i++;
-	
-		$field_id = $params[0]['field_id'];
-		$id = isset($params[0]['_temp_id']) ? $params[0]['_temp_id'] : $field_id;
-		$hidden = isset($params[0]['_hide']) ? ' style="display:none;"' : '';
-	
-		$params[0]['before_field'] = "<div id='field-${i}_$id' class='field'$hidden>";
-		$params[0]['after_field'] = "</div>";
-		//$params[0]['before_field'] = "%BEG_OF_TITLE%"; // deprecated
-		//$params[0]['after_field'] = "%END_OF_TITLE%"; // deprecated
-		if ( is_callable( $this->pt->cf_registered_fields[$field_id]['callback'] ) ) {
-			$this->pt->cf_registered_fields[$field_id]['_callback'] = $this->pt->cf_registered_fields[$field_id]['callback'];
-			$this->pt->cf_registered_fields[$field_id]['callback'] = 'cf_field_control';
-		}
-	
-		return $params;
+	function cf_field_description( $id ) {
+		if ( !is_scalar($id) )
+			return;
+		if ( isset($this->cf_registered_fields[$id]['description']) )
+			return esc_html( $this->cf_registered_fields[$id]['description'] );
 	}
 	
 	function cf_list_field_controls( $sidebar ) {
@@ -126,28 +116,28 @@ class CF_Field_Controle{
 			echo "\t<p class='description'>$description</p>";
 			echo "</div>\n";
 		}
-		$this->pt->cf_sidebar->dynamic_sidebar( $sidebar );
+		$this->cf_sidebar->dynamic_sidebar( $sidebar );
 		echo "</div>\n";
 	}
 	
 	function cf_register_field_control($id, $name, $control_callback, $options = array()) {
 	
 		$id = strtolower($id);
-		$id_base = $this->pt->cf_field_manager->_get_field_id_base($id);
+		$id_base = $this->_get_field_id_base($id);
 		if ( empty($control_callback) ) {
-			unset($this->pt->cf_registered_field_controls[$id]);
-			unset($this->pt->cf_registered_field_updates[$id_base]);
+			unset($this->cf_registered_field_controls[$id]);
+			unset($this->cf_registered_field_updates[$id_base]);
 			return;
 		}
 	
-		if ( in_array($control_callback, $this->pt->_cf_deprecated_fields_callbacks, true) && !is_callable($control_callback) ) {
-			if ( isset($this->pt->cf_registered_fields[$id]) )
-				unset($this->pt->cf_registered_fields[$id]);
+		if ( in_array($control_callback, $this->_cf_deprecated_fields_callbacks, true) && !is_callable($control_callback) ) {
+			if ( isset($this->cf_registered_fields[$id]) )
+				unset($this->cf_registered_fields[$id]);
 	
 			return;
 		}
 	
-		if ( isset($this->pt->cf_registered_field_controls[$id]) && !did_action( 'fields_init' ) )
+		if ( isset($this->cf_registered_field_controls[$id]) && !did_action( 'fields_init' ) )
 			return;
 	
 		$defaults = array('width' => 250, 'height' => 200 ); // height is never used
@@ -162,18 +152,18 @@ class CF_Field_Controle{
 			'params' => array_slice(func_get_args(), 4)
 		);
 		$field = array_merge($field, $options);
-		$this->pt->cf_registered_field_controls[$id] = $field;
-		$this->pt->update_var('cf_registered_field_controls');
+		$this->cf_registered_field_controls[$id] = $field;
+		//$this->update_temp('cf_registered_field_controls');
 		
-		if ( isset($this->pt->cf_registered_field_updates[$id_base]) )
+		if ( isset($this->cf_registered_field_updates[$id_base]) )
 			return;
 	
 		if ( isset($field['params'][0]['number']) )
 			$field['params'][0]['number'] = -1;
 	
 		unset($field['width'], $field['height'], $field['name'], $field['id']);
-		$this->pt->cf_registered_field_updates[$id_base] = $field;
-		$this->pt->update_var('cf_registered_field_updates');
+		$this->cf_registered_field_updates[$id_base] = $field;
+		//$this->update_temp('cf_registered_field_updates');
 	}
 	
 	function cf_unregister_field_control($id) {
@@ -189,5 +179,4 @@ class CF_Field_Controle{
 		if ( isset($cf_registered_sidebars[$id]['description']) )
 			return esc_html( $cf_registered_sidebars[$id]['description'] );
 	}
-
 }

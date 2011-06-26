@@ -1,8 +1,8 @@
 <?php
 class CF_Field_SelectMultiple extends CF_Field{
 	
-	function CF_Field_SelectMultiple(){
-		$field_ops = array('classname' => 'field_selectmultiple', 'description' => __( 'Select Mutiple', 'custom-fields') );
+	function CF_Field_SelectMultiple() {
+		$field_ops = array('classname' => 'field_selectmultiple', 'description' => __( 'The Select Mutiple is Select tag which multiple options can be selected at the same time.', 'custom-fields') );
 		$this->CF_Field('selectmultiple', __('Select Multiple', 'custom-fields'), '_input-selectmultiple', true, $field_ops);
 	}
 	
@@ -16,13 +16,13 @@ class CF_Field_SelectMultiple extends CF_Field{
 		
 		//$ti = array_shift($v);
 		
-		foreach($v as $val){
-			if( is_numeric( strpos($val, '|') ) ){
+		foreach($v as $val) {
+			if( is_numeric( strpos($val, '|') ) ) {
 				$a = explode('|', $val);
 				$values[$a[0]] = $a[1];
 			}
 		}
-		$title = apply_filters('widget_title', empty( $instance['title'] ) ? __( 'Editor', 'custom-fields') : $instance['title'], $instance, $this->id_base);
+		$title = apply_filters('widget_title', empty( $instance['title'] ) ? '' : $instance['title'], $instance, $this->id_base);
 			
 		echo $before_widget;
 		if ( $title)
@@ -34,20 +34,19 @@ class CF_Field_SelectMultiple extends CF_Field{
 			}
 		echo '</select>' . "\n";
 		echo '</div>';
-		if( $instance['description'] != '' )
+		if( isset($instance['description']) && $instance['description'] != '' )
 			echo '<p>' . $instance['description'] . '</p>';
 		echo $after_widget;
 
 	}
 	
-	function save( $values ){
-		$values = $values['name'];
+	function save( $values ) {
+		$values = isset($values['name']) ? $values['name'] : '' ;
 		return $values;
 	}
 	
 	function update( $new_instance, $old_instance ) {
 		$instance = $old_instance;
-		//var_dump($new_instance);
 		$instance['title'] = strip_tags($new_instance['title']);
 		$instance['settings'] = strip_tags($new_instance['settings']);
 		$instance['description'] = strip_tags($new_instance['description']);

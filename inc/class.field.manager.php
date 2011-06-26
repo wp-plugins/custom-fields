@@ -1,39 +1,28 @@
 <?php
-class CF_Field_Manager{
+class CF_Field_Manager extends Functions{
 	private $pt;
-	
-	function __construct( $obj_pt ){
-		$this->pt = &$obj_pt;
+	protected static $class = __CLASS__;
+        
+	function __construct(){
 	}
 	
+	function setter( $options, $objects) {
+	   foreach( $options as $name => &$opt )
+	       $this->{$name} = &$opt;
+	   foreach( $objects as $name => &$obj )
+	   	$this->{$name} = &$obj;
+	 }
+	
 	function register_field($field_class) {
-		$this->pt->cf_field_factory->register($field_class);
+		$this->cf_field_factory->register($field_class);
 	}
 	
 	function unregister_field($field_class) {
-		$this->pt->cf_field_factory->unregister($field_class);
+		$this->cf_field_factory->unregister($field_class);
 	}
-	
-	function the_field($field, $instance = array(), $args = array()) {
-	
-		$field_obj = $this->pt->cf_field_factory->fields[$field];
-		if ( !is_a($field_obj, 'cf_Field') )
-			return;
-	
-		$before_field = sprintf('<div class="widget %s">', $field_obj->field_options['classname']);
-		$default_args = array('before_field' => $before_field, 'after_field' => "</div>", 'before_title' => '<h2 class="fieldtitle">', 'after_title' => '</h2>');
-	
-		$args = wp_parse_args($args, $default_args);
-		$instance = wp_parse_args($instance);
-	
-		do_action( 'the_field', $field, $instance, $args );
-	
-		$field_obj->_set(-1);
-		$field_obj->field($args, $instance);
-	}
-	
+
 	function cf_list_fields() {
-		$sort = $this->pt->cf_registered_fields;
+		$sort = $this->cf_registered_fields;
 		usort( $sort, create_function( '$a, $b', 'return strnatcasecmp( $a["name"], $b["name"] );' ) );
 		$done = array();
 	
@@ -49,8 +38,8 @@ class CF_Field_Manager{
 	
 			$args = array( 'field_id' => $field['id'], 'field_name' => $field['name'], '_display' => 'template' );
 	
-			if ( isset($this->pt->cf_registered_field_controls[$field['id']]['id_base']) && isset($field['params'][0]['number']) ) {
-				$id_base = $this->pt->cf_registered_field_controls[$field['id']]['id_base'];
+			if ( isset($this->cf_registered_field_controls[$field['id']]['id_base']) && isset($field['params'][0]['number']) ) {
+				$id_base = $this->cf_registered_field_controls[$field['id']]['id_base'];
 				$args['_temp_id'] = "$id_base-__i__";
 				$args['_multi_num'] = $this->next_field_id_number($id_base);
 				$args['_add'] = 'multi';
@@ -59,23 +48,23 @@ class CF_Field_Manager{
 				if ( $sidebar )
 					$args['_hide'] = '1';
 			}
-			$args = $this->pt->cf_field_control->cf_list_field_controls_dynamic_sidebar( array( 0 => $args, 1 => $field['params'][0] ) );
-			$args[0]['post_type'] = $this->pt->post_type;
-			call_user_func_array( array(&$this->pt->cf_field_control, 'cf_field_control'), $args );
+			$args = $this->cf_field_control->cf_list_field_controls_dynamic_sidebar( array( 0 => $args, 1 => $field['params'][0] ) );
+			$args[0]['post_type'] = $this->post_type;
+			call_user_func_array( array(&$this->cf_field_control, 'cf_field_control'), $args );
 		}
 	}
 	
 	
 	function cf_is_active_field($callback = false, $field_id = false, $id_base = false, $skip_inactive = true) {
-		$sidebars_fields = $this->pt->cf_field_sidebar->cf_get_sidebars_fields();
+		$sidebars_fields = $this->cf_get_sidebars_fields();
 		if ( is_array($sidebars_fields) ) {
 			foreach ( $sidebars_fields as $sidebar => $fields ) {
 				if ( $skip_inactive && 'cf_inactive_fields' == $sidebar )
 					continue;
 				if ( is_array($fields) ) {
 					foreach ( $fields as $field ) {
-						if ( ( $callback && isset($this->pt->cf_registered_fields[$field]['callback']) && $this->pt->cf_registered_fields[$field]['callback'] == $callback ) || ( $id_base && $this->_get_field_id_base($field) == $id_base ) ) {
-							if ( !$field_id || $field_id == $this->pt->cf_registered_fields[$field]['id'] )
+						if ( ( $callback && isset($this->cf_registered_fields[$field]['callback']) && $this->cf_registered_fields[$field]['callback'] === $callback ) || ( $id_base && $this->_get_field_id_base($field) == $id_base ) ) {
+							if ( !$field_id || $field_id == $this->cf_registered_fields[$field]['id'] )
 								return $sidebar;
 						}
 					}
@@ -86,9 +75,9 @@ class CF_Field_Manager{
 	}
 	
 	function _register_field_update_callback($id_base, $update_callback, $options = array()) {
-		if ( isset($this->pt->cf_registered_field_updates[$id_base]) ) {
+		if ( isset($this->cf_registered_field_updates[$id_base]) ) {
 			if ( empty($update_callback) )
-				unset($this->pt->cf_registered_field_updates[$id_base]);
+				unset($this->cf_registered_field_updates[$id_base]);
 			return;
 		}
 	
@@ -98,9 +87,7 @@ class CF_Field_Manager{
 		);
 	
 		$field = array_merge($field, $options);
-		$this->pt->cf_registered_field_updates[$id_base] = $field;
-		$this->pt->update_var('cf_registered_field_updates');
-		
+		$this->cf_registered_field_updates[$id_base] = $field;
 	}
 	
 	function _register_field_form_callback($id, $name, $form_callback, $options = array()) {
@@ -108,11 +95,11 @@ class CF_Field_Manager{
 		$id = strtolower($id);
 	
 		if ( empty($form_callback) ) {
-			unset($this->pt->cf_registered_field_controls[$id]);
+			unset($this->cf_registered_field_controls[$id]);
 			return;
 		}
 	
-		if ( isset($this->pt->cf_registered_field_controls[$id]) && !did_action( 'fields_init' ) )
+		if ( isset($this->cf_registered_field_controls[$id]) && !did_action( 'fields_init' ) )
 			return;
 	
 		$defaults = array('width' => 250, 'height' => 200 );
@@ -128,32 +115,9 @@ class CF_Field_Manager{
 		);
 		$field = array_merge($field, $options);
 	
-		$this->pt->cf_registered_field_controls[$id] = $field;
-		$this->pt->update_var('cf_registered_field_controls');
+		$this->cf_registered_field_controls[$id] = $field;
 	}
-	
-	function _get_field_id_base($id) {
-		return preg_replace( '/-[0-9]+$/', '', $id );
-	}
-	
-	function cf_get_field_defaults() {
-		$defaults = array();
-	
-		foreach ( (array) $this->pt->cf_registered_fields as $index => $sidebar )
-			$defaults[$index] = array();
-	
-		return $defaults;
-	}
-	
-	function cf_field_description( $id ) {
-		if ( !is_scalar($id) )
-			return;
-	
-		if ( isset($this->pt->cf_registered_fields[$id]['description']) )
-			return esc_html( $this->pt->cf_registered_fields[$id]['description'] );
-	}
-	
-	
+
 	function cf_convert_field_settings($base_name, $option_name, $settings) {
 		// This test may need expanding.
 		$single = $changed = false;
@@ -174,13 +138,13 @@ class CF_Field_Manager{
 			$settings = array( 2 => $settings );
 
 			// If loading from the front page, update sidebar in memory but don't save to options
-			$this->pt->get_var('sidebars_fields');
+			$this->get_var('sidebars_fields');
 			if ( is_admin() ) {
-				$sidebars_fields = $this->pt->sidebars_fields;
+				$sidebars_fields = $this->sidebars_fields;
 			} else {
-				if ( empty($this->pt->_cf_sidebars_fields) )
-					$this->pt->_cf_sidebars_fields = $this->pt->sidebars_fields;
-				$sidebars_fields = &$this->pt->_cf_sidebars_fields;
+				if ( empty($this->_cf_sidebars_fields) )
+					$this->_cf_sidebars_fields = $this->sidebars_fields;
+				$sidebars_fields = &$this->_cf_sidebars_fields;
 			}
 			foreach ( (array) $sidebars_fields as $index => $sidebar ) {
 				if ( is_array($sidebar) ) {
@@ -193,25 +157,26 @@ class CF_Field_Manager{
 					}
 				}
 			}
-			if ( is_admin() && $changed ){
-				$this->pt->sidebars_fields = $sidebars_fields;
-				$this->pt->update_var('sidebars_fields');
+			if ( is_admin() && $changed ) {
+				$this->sidebars_fields = $sidebars_fields;
+				$this->update_var('sidebars_fields');
 			}
 		}
 		
 		$settings['_multifield'] = 1;
-		if ( is_admin() ){
-			$this->pt->option_fields[$option_name] = $settings;
-			$this->pt->update_var('option_fields');
+		if ( is_admin() ) {
+			$this->option_fields[$option_name] = $settings;
+			$this->update_var('option_fields');
 		}
-			//update_option( $this->pt->option_fields[$this->option_name], $settings );
+			//update_option( $this->option_fields[$this->option_name], $settings );
 		return $settings;
 	}
 	
 	function next_field_id_number($id_base) {
 		$number = 1;
 	
-		foreach ( $this->pt->cf_registered_fields as $field_id => $field ) {
+		foreach ( $this->cf_registered_fields as $field_id => $field ) {
+			$matches = array();
 			if ( preg_match( '/' . $id_base . '-([0-9]+)$/', $field_id, $matches ) )
 				$number = max($number, $matches[1]);
 		}

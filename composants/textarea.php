@@ -3,10 +3,10 @@
  * Textarea field type
  *
  * @package default
- * @author Amaury Balmer
+ * @author Julien Guilmont
  */
 class CF_Field_Textarea extends CF_Field{
-	function CF_Field_Textarea(){
+	function CF_Field_Textarea() {
 		$field_ops = array('classname' => 'field_textarea', 'description' => __( 'Block Text without editor', 'custom-fields') );
 		$this->CF_Field('textarea', __('Textarea', 'custom-fields'), 'input-textarea', true, $field_ops);
 	}
@@ -14,7 +14,7 @@ class CF_Field_Textarea extends CF_Field{
 	function field( $args, $instance ) {
 		extract( $args );
 
-		$title = apply_filters('widget_title', empty( $instance['title'] ) ? __( 'Pages', 'custom-fields' ) : $instance['title'], $instance, $this->id_base);
+		$title = apply_filters('widget_title', empty( $instance['title'] ) ? '' : $instance['title'], $instance, $this->id_base);
 		$entries = is_array($entries) ? $entries['name'] : $entries;
 			echo $before_widget;
 			if ( $title)
@@ -22,14 +22,14 @@ class CF_Field_Textarea extends CF_Field{
 		?>
 		<textarea name="<?php echo $this->get_field_name('name'); ?>" id="<?php echo $this->get_field_id('pages'); ?>" rows="5" cols="50"><?php echo esc_html($entries)?></textarea>
 		<?php if( isset($instance['description']) )?>
-			<p><?php echo $instance['description']; ?></p>
+			<p class="howto"><?php echo $instance['description']; ?></p>
 		<?php
 			echo $after_widget;
 
 	}
 	
-	function save( $values ){
-		$values = $values['name'];
+	function save( $values ) {
+		$values = isset($values['name']) ? $values['name'] : '' ;
 		return $values;
 	}
 	

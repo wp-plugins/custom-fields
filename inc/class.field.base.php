@@ -7,8 +7,7 @@
  * @subpackage fields
  * @since 2.8
  */
-class CF_Field {
-
+class CF_Field extends Functions {
 	var $id_base;			// Root id for all fields of this type.
 	var $name;				// Name for this field type.
 	var $field_options;	// Option array passed to wp_register_sidebar_field()
@@ -16,6 +15,7 @@ class CF_Field {
 	var $data_name;
 	var $alone_value = true;
 	var $option_name;
+        var $require = null;
 	var $slug = null;
 	
 	var $number = false;	// Unique ID number of the current instance.
@@ -23,6 +23,7 @@ class CF_Field {
 	var $updated = false;	// Set true when we update the data after a POST submit - makes sure we don't do it twice.
 	var $post_type;
 	private $pt;
+
 	// Member functions that you must over-ride.
 
 	/** Echo the field content.
@@ -46,6 +47,17 @@ class CF_Field {
 	 */
 	function save($args, $instance) {
 		die('function cf_Field::save() must be over-ridden in a sub-class.');
+	}
+
+        function required($args, $instance) {
+                $error = array();
+                if( !isset($instance['require']) )
+                    return false;
+                if( $instance['require'] && empty( $args['entries'] ) ){
+                    $error[$args['field_id']] =  sprintf(__('Field %s is required', 'custom-fields'), $instance['title']);
+                }
+                return $error;
+                die('function cf_Field::required() must be over-ridden in a sub-class.');
 	}
 
 	/** Update a particular instance.
@@ -77,7 +89,7 @@ class CF_Field {
 	 * PHP4 constructor
 	 */
 	function cf_Field( $id_base = false, $name, $data_name, $alone_value, $field_options = array(), $control_options = array() ) {
-		$this->__construct( $id_base, $name, $field_options, $control_options );
+		$this->__construct( $id_base, $name, $data_name, $alone_value, $field_options, $control_options );
 	}
 
 	/**
@@ -100,8 +112,7 @@ class CF_Field {
 		$this->option_name = 'field_' . $this->id_base;
 		$this->alone_value = $alone_value;
 		$this->field_options = wp_parse_args( $field_options, array('classname' => $this->option_name) );
-		$this->control_options = wp_parse_args( $control_options, array('id_base' => $this->id_base) );
-		
+		$this->control_options = wp_parse_args( $control_options, array('id_base' => $this->id_base, 'width' => '750') );
 	}
 
 	/**
@@ -129,13 +140,16 @@ class CF_Field {
 	}
 
 	// Private Functions. Don't worry about these.
-
-	function _register( $obj ) {
-
-		$this->pt = &$obj ;
+	function _register( &$obj ) {
+		$this->cf_registered_fields = &$obj->cf_registered_fields ;
+                $this->cf_field_manager = &$obj->cf_field_manager ;
+                $this->option_fields = &$obj->option_fields ;
+                $this->cf_field_sidebar = &$obj->cf_field_sidebar ;
 		$this->post_type = $obj->post_type;
+		//$this->post_type = $obj->post_type;
 		$settings = $this->get_settings();
 		$empty = true;
+                
 		if ( is_array($settings) ) {
 			foreach ( array_keys($settings) as $number ) {
 				if ( is_numeric($number) ) {
@@ -175,28 +189,44 @@ class CF_Field {
 		return array(&$this, 'form_callback');
 	}
 
-	/** Generate the actual field content.
-	 *	Just finds the instance and calls field().
-	 *	Do NOT over-ride this function. */
+	/**
+	 * Generate the actual field content. Just finds the instance and calls field().
+	 * Do NOT over-ride this function.
+	 *
+	 * @param array $args 
+	 * @param integer $field_args 
+	 * @return void
+	 * @author Julien Guilmont
+	 */
 	function save_callback( $args, $field_args = 1 ) {
 		if ( is_numeric($field_args) )
 			$field_args = array( 'number' => $field_args );
 		
 		$field_args = wp_parse_args( $field_args, array( 'number' => -1 ) );
-		//$this->_set( $field_args['number'] );
+                if( $field_args['number'] > 1 )
+                    $this->_set( $field_args['number'] );
+                $error = null;
 		$instance = $this->get_settings();
 		if ( array_key_exists( $this->number, $instance ) ) {
-			$entries = $this->save($args['entries']);
+                        if( isset($instance[$this->number]['slug']) && !empty($instance[$this->number]['slug']))
+                                $this->slug = $instance[$this->number]['slug'];
+                        else
+                                $this->slug = $this->option_name . '__' . $this->number;
+
+			$entries = $this->save($args['entries'], $args);
+
 			$args['entries'] = $entries;
-			$this->updateEntries($args, $field_args['number']);
+			$this->updateEntries($args, $this->number);
+                        $error = $this->required($args, $instance[$this->number]);
 		}
+                return $error;
 	}
 
 	/** Generate the actual field content.
 	 *	Just finds the instance and calls field().
 	 *	Do NOT over-ride this function. */
 	function display_callback( $args, $field_args = 1) {
-		$this->getEntries(&$args, $field_args['number']);
+		$this->getEntries($args, $field_args['number']);
 		if ( is_numeric($field_args) )
 			$field_args = array( 'number' => $field_args );
 
@@ -206,6 +236,12 @@ class CF_Field {
 
 		if ( array_key_exists( $this->number, $instance ) ) {
 			$instance = $instance[$this->number];
+                        $this->require = isset($instance['require']) ? $instance['require'] : false;
+
+                        if( isset($instance['slug']) && !empty($instance['slug']))
+                                $this->slug = $instance['slug'];
+                        else
+                                $this->slug = $this->option_name . '__' . $this->number;
 			// filters the field's settings, return false to stop displaying the field
 			$instance = apply_filters('field_display_callback', $instance, $this, $args);
 			if ( false !== $instance )
@@ -216,20 +252,12 @@ class CF_Field {
 	/** Deal with changed settings.
 	 *	Do NOT over-ride this function. */
 	function update_callback( $field_args = 1 ) {
-		//global $custom_fields;
-		//$this->post_type = $field_args['post_type'];
-		//$this->pt = &$custom_fields['admin-base']->post_type_nav[$field_args['post_type']];
-
 		if ( is_numeric($field_args) )
 			$field_args = array( 'number' => $field_args );
 
 		$field_args = wp_parse_args( $field_args, array( 'number' => -1 ) );
 		
 		$all_instances = $this->get_settings();
-		
-		// We need to update the data
-		//if ( $this->updated )
-		//	return;
 		
 		if ( isset($_POST['delete_field']) && $_POST['delete_field'] ) {
 			// Delete the settings for this instance of the field
@@ -238,8 +266,8 @@ class CF_Field {
 			else
 				return;
 
-			if ( isset($this->pt->cf_registered_fields[$del_id]['params'][0]['number']) ) {
-				$number = $this->pt->cf_registered_fields[$del_id]['params'][0]['number'];
+			if ( isset($this->cf_registered_fields[$del_id]['params'][0]['number']) ) {
+				$number = $this->cf_registered_fields[$del_id]['params'][0]['number'];
 
 				if ( $this->id_base . '-' . $number == $del_id )
 					unset($all_instances[$number]);
@@ -261,12 +289,16 @@ class CF_Field {
 				$old_instance = isset($all_instances[$number]) ? $all_instances[$number] : array();
 
 				$instance = $this->update($new_instance, $old_instance);
+                                $instance['require'] = isset($new_instance['require']) ? true : false;
+                                $this->require = $instance['require'];
 				$instance['slug'] = strip_tags($new_instance['slug']);
-				
 				if( isset($instance['slug']) && $instance['slug'] != '')
 					$this->slug = $instance['slug'];
 				else
 					$this->slug = $this->option_name . '__' . $number;
+				
+				if ( empty($old_instance['slug']) )
+					$old_instance['slug'] = $this->option_name . '__' . $number;
 				
 				if( $new_instance['slug'] != $old_instance['slug'] )
 					$this->regenerateSlug( $new_instance['slug'], $old_instance['slug'], $this );
@@ -274,16 +306,15 @@ class CF_Field {
 				$this->_register_one( $number );
 				
 				
-				$this->pt->update_var('cf_registered_fields');
 				// filters the field's settings before saving, return false to cancel saving (keep the old settings if updating)
 				$instance = apply_filters('field_update_callback', $instance, $new_instance, $old_instance, $this);
+
 				if ( false !== $instance )
 					$all_instances[$number] = $instance;
 				break; // run only once
 			}
 		}
 		$this->save_settings($all_instances);
-		//$this->updated = true;
 	}
 
 	/** Generate the control form.
@@ -305,103 +336,125 @@ class CF_Field {
 			$this->_set($field_args['number']);
 			$instance = $all_instances[ $field_args['number'] ];
 		}
-		
+		$this->require = isset($instance['require']) ? $instance['require'] : false;
+
+                if( isset($instance['slug']) && !empty($instance['slug']))
+                        $this->slug = $instance['slug'];
+                else
+                        $this->slug = $this->option_name . '__' . $field_args['number'];
 		// filters the field admin form before displaying, return false to stop displaying it
 		$instance = apply_filters('field_form_callback', $instance, $this);
 
 		$return = null;
 		if ( false !== $instance ) {
+                        echo '<div class="col1">';
 			$return = $this->form($instance);
-			
+			echo '</div>';
+			echo '<div class="col2">';
 			// add extra fields in the field form - be sure to set $return to null if you add any
 			// if the field has no form the text echoed from the default form method can be hidden using css
 			do_action_ref_array( 'in_field_form', array(&$this, &$return, $instance) );
+                        echo '</div><div class="clear"></div>';
 		}
 		return $return;
 	}
 
 	/** Helper function: Registers a single instance. */
 	function _register_one($number = -1) {
-		$this->pt->cf_field_sidebar->cf_register_sidebar_field(	$this->id, $this->name,	$this->_get_display_callback(),	$this->_get_save_callback(), $this->field_options, array( 'number' => $number ) );
-		$this->pt->cf_field_manager->_register_field_update_callback( $this->id_base, $this->_get_update_callback(), $this->control_options, array( 'number' => -1 ) );
-		$this->pt->cf_field_manager->_register_field_form_callback(	$this->id, $this->name,	$this->_get_form_callback(), $this->control_options, array( 'number' => $number ) );
-
+		$this->cf_field_sidebar->cf_register_sidebar_field(	$this->id, $this->name,	$this->_get_display_callback(),	$this->_get_save_callback(), $this->field_options, array( 'number' => $number ) );
+		$this->cf_field_manager->_register_field_update_callback( $this->id_base, $this->_get_update_callback(), $this->control_options, array( 'number' => -1 ) );
+		$this->cf_field_manager->_register_field_form_callback(	$this->id, $this->name,	$this->_get_form_callback(), $this->control_options, array( 'number' => $number ) );
 	}
 
 	function save_settings($settings) {
 		$settings['_multifield'] = 1;
-		$this->pt->option_fields[$this->option_name] = $settings;
-		$this->pt->update_var('option_fields');
+		$this->option_fields[$this->option_name] = $settings;
+		$this->update_var('option_fields');
 	}
 
 	function get_settings() {
-		$this->pt->get_var('option_fields');
-		if( isset($this->option_name) )
-			$settings = (array) $this->pt->option_fields[$this->option_name];
+		//$this->pt->get_var('option_fields');
+		if( isset($this->option_name) && isset($this->option_fields[$this->option_name]) )
+			$settings = (array) $this->option_fields[$this->option_name];
 		else
 			$settings = array();
 		if ( !array_key_exists('_multifield', $settings) ) {
 			// old format, conver if single field
-			$settings = $this->pt->cf_field_manager->cf_convert_field_settings($this->id_base, $this->option_name, $settings);
+			$settings = $this->cf_field_manager->cf_convert_field_settings($this->id_base, $this->option_name, $settings);
 		}
 		unset($settings['_multifield'], $settings['__i__']);
 		return $settings;
 	}
 	
-	function getEntries($args, $number){
-		if( !isset($this->pt->option_fields[$this->option_name][$number]['slug']) ){
+	function getEntries(&$args, $number) {
+		if( !isset($this->option_fields[$this->option_name][$number]['slug']) || empty($this->option_fields[$this->option_name][$number]['slug']) ) {
 			$this->slug = $this->option_name . '__' . $number;
 		}else{
-			$this->slug = $this->pt->option_fields[$this->option_name][$number]['slug'];
+			$this->slug = $this->option_fields[$this->option_name][$number]['slug'];
 		}
-		if($args['post_id'] == null && $args['tt_id'] == null)
+		if( ( !isset($args['post_id']) || $args['post_id'] == null ) && $args['tt_id'] == null)
 			return false;
-		if($args['post_id'] != null)
+		if( isset($args['post_id']) && $args['post_id'] != null )
 			$args['entries'] = get_post_meta($args['post_id'], $this->slug, true);
 		elseif($args['tt_id'] != null)
 			$args['entries'] = get_term_taxonomy_meta( $args['tt_id'], $this->slug, true );
+
 	}
 	
-	function updateEntries($args, $number){
-		if( !isset($this->pt->option_fields[$this->option_name][$number]['slug']) ){
+	function updateEntries($args, $number) {
+		if( !isset($this->option_fields[$this->option_name][$number]['slug']) || empty($this->option_fields[$this->option_name][$number]['slug']) ) {
 			$this->slug = $this->option_name . '__' . $number;
 		}else{
-			$this->slug = $this->pt->option_fields[$this->option_name][$number]['slug'];
+			$this->slug = $this->option_fields[$this->option_name][$number]['slug'];
 		}
-		if($args['entries'] == null || empty($args['entries']) )
+		if( isset($args['post_id']) && $args['post_id'] != null ) {
+			$test = get_post_meta($args['post_id'], $this->slug, true);
+			if ( $test == false && empty($args['entries']) ) {
+				return false;
+			} elseif( $test !== false && empty($args['entries']) ) {
+				delete_post_meta($args['post_id'], $this->slug );
+				return false;
+			} else {
+				$entries['entries'] = update_post_meta($args['post_id'], $this->slug, $args['entries']);
+			}
+		} elseif($args['tt_id'] != null) {
+			$test = get_term_taxonomy_meta($args['tt_id'], $this->slug, true);
+			if ( $test == false && empty($args['entries']) ) {
+				return false;
+			} elseif( $test !== false && empty($args['entries']) ) {
+				delete_term_taxonomy_meta($args['tt_id'], $this->slug );
+				return false;
+			} else {
+				$entries['entries'] = update_term_taxonomy_meta($args['tt_id'], $this->slug, $args['entries']);
+			}
+		} else {
 			return false;
-		if($args['post_id'] != null)
-			$entries['entries'] = update_post_meta($args['post_id'], $this->slug, $args['entries']);	
-		elseif($args['tt_id'] != null)
-			$entries['entries'] = update_term_taxonomy_meta($args['tt_id'], $this->slug, $args['entries']);
-		else
-			return false;
-		
+		}
 		return true;
 	}
 	
-	function regenerateSlug( $new_slug, $old_slug, &$object ){
+	function regenerateSlug( $new_slug, $old_slug, $object ) {
 		global $wpdb;
-		if( isset($object->pt->taxo) ){ //if taxonomy
+		
+		$new_slug = strip_tags($new_slug);
+		if( isset($object->pt->taxo) ) { //if taxonomy
 			$metas = $wpdb->get_results( $wpdb->prepare("SELECT * FROM $wpdb->termmeta WHERE meta_key = %s", $old_slug) );
 			if( empty($metas) )
 				return false;
-			foreach( $metas as &$meta ){
-				$meta->meta_key = strip_tags( $new_slug );
+			foreach( $metas as &$meta ) {
+				$meta->meta_key = $new_slug;
 				$id = $meta->meta_id;
 				$meta = (array)$meta;
 				$wpdb->update( $wpdb->termmeta, $meta, array( 'meta_id' => $id ) );
 			}
 			
 		}else{ //If posttype
-			$metas = $wpdb->get_results( $wpdb->prepare("SELECT * FROM $wpdb->postmeta WHERE meta_key = %s", $old_slug) );
-			if( empty($metas) )
+			$meta_ids = $wpdb->get_col( $wpdb->prepare("SELECT meta_id FROM $wpdb->postmeta WHERE meta_key = %s", $old_slug) );
+			if( empty($meta_ids) )
 				return false;
-			foreach( $metas as &$meta ){
-				$meta->meta_key = strip_tags( $new_slug );
-				$id = $meta->meta_id;
-				$meta = (array)$meta;
-				$wpdb->update( $wpdb->postmeta, $meta, array( 'meta_id' => $id ) );
+				
+			foreach( $meta_ids as $meta_id ) {
+				$wpdb->update( $wpdb->postmeta, array('meta_key' => $new_slug), array( 'meta_id' => $meta_id ) );
 			}
 		}
 	}

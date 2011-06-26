@@ -1,7 +1,8 @@
 <?php
-class SimpleCustomTypes_Admin_Taxonomy{
+class SimpleCustomTypes_Admin_Taxonomy extends Functions{
 	
 	public $post_type;
+        public $taxo;
 	public $id_menu;
 	
 	public $sidebars_fields;
@@ -48,67 +49,163 @@ class SimpleCustomTypes_Admin_Taxonomy{
 		$this->__construct( $taxo, $options );
 	}
 	
-	function __construct( $taxo, $options ){
+	function __construct( $taxo, $options ) {
 		$this->post_type 					= $taxo['name'];
-		$this->taxo							= $taxo['taxo'];
+		$this->taxo						= $taxo['taxo'];
 		$this->id_menu 						= 'cf_taxonomies';
-		//$options = array();
-		$options = wp_cache_get('cf_options-'.$this->post_type, FLAG_CACHE);
+                $this->cf_load_options( $options );
 		
-		if(!empty($options)){
-			$this->p_options = $options;		
-			$this->cf_registered_sidebars 		= isset($options['cf_registered_sidebars']) ? (array) $options['cf_registered_sidebars'] : array();
+		$this->cf_load_object();
+
+                add_action( 'cf_init-'.$this->post_type, array(&$this, 'cf_fields_init') );
+                add_action( 'wp_loaded', array(&$this, 'cf_fields_load') , 1);
+
+	}
+
+
+	function cf_load_object(){
+
+		$this->cf_field_factory =& new CF_Field_Factory(array('post_type' => &$this->post_type));
+		$this->cf_ajax 			=& new CF_Ajax_Field(
+			array(
+				'post_type' 					=> &$this->post_type,
+				'cf_registered_fields' 			=> &$this->cf_registered_fields,
+				'cf_registered_field_updates' 	=> &$this->cf_registered_field_updates,
+				'cf_registered_field_controls' 	=> &$this->cf_registered_field_controls,
+				'sidebars' 						=> &$this->sidebars,
+				'sidebars_fields' 				=> &$this->sidebars_fields,
+				'cf_registered_sidebars' 		=> &$this->cf_registered_sidebars,
+				'_cf_sidebars_fields'			=> &$this->_cf_sidebars_fields,
+			),
+			array());
+
+                $this->cf_page 			=& new CF_Page_Field_Taxo();
+
+		$this->cf_sidebar 		=& new CF_Sidebar_Field();
+		$this->cf_field_manager	=& new CF_Field_Manager();
+		$this->cf_field_sidebar	=& new CF_Field_Sidebar(
+			array(
+				'_cf_sidebars_fields' 				=> &$this->_cf_sidebars_fields ,
+				'sidebars_fields' 					=> &$this->sidebars_fields,
+				'cf_registered_fields' 				=> &$this->cf_registered_fields,
+				'_cf_deprecated_fields_callbacks' 	=> &$this->_cf_deprecated_fields_callbacks,
+				'cf_registered_field_controls' 		=> &$this->cf_registered_field_controls,
+				'cf_registered_field_updates' 		=> &$this->cf_registered_field_updates,
+				'post_type' 						=> &$this->post_type,
+			));
+
+		$this->cf_field_control	=& new CF_Field_Control(
+                        array(
+                            'cf_registered_fields' 				=> &$this->cf_registered_fields,
+                            'cf_registered_field_controls' 		=> &$this->cf_registered_field_controls,
+                            'sidebars_fields' 					=> &$this->sidebars_fields,
+                            'post_type' 						=> &$this->post_type,
+                            'cf_registered_field_updates' 		=> &$this->cf_registered_field_updates,
+                            '_cf_deprecated_fields_callbacks' 	=> &$this->_cf_deprecated_fields_callbacks
+                        ),
+                        array(
+                            'cf_sidebar' 						=> &$this->cf_sidebar
+                        ));
+
+		$this->cf_sidebar->setter(
+			array(
+				'cf_registered_sidebars' 	=> &$this->cf_registered_sidebars,
+				'cf_registered_fields'		=> &$this->cf_registered_fields,
+				'post_type' 				=> &$this->post_type,
+				'sidebars_fields' 			=> &$this->sidebars_fields,
+				'_cf_sidebars_fields' 		=> &$this->_cf_sidebars_fields,
+				),
+			array(
+				'cf_field_control' 			=> &$this->cf_field_control,
+				));
+
+		$this->cf_field_manager->setter(
+			array(
+				'cf_registered_fields' 			=> &$this->cf_registered_fields,
+				'cf_registered_field_controls' 	=> &$this->cf_registered_field_controls,
+				'post_type' 					=> &$this->post_type,
+				'cf_registered_field_updates' 	=> &$this->cf_registered_field_updates,
+				'sidebars_fields' 				=> &$this->sidebars_fields,
+				'_cf_sidebars_fields' 			=> &$this->_cf_sidebars_fields,
+				'option_fields' 				=> &$this->option_fields,
+				),
+			array(
+				'cf_field_factory' => &$this->cf_field_factory,
+				'cf_field_control' => &$this->cf_field_control,
+
+			));
+
+                $this->cf_page->setter(
+			array(
+				'id_menu' 						=> &$this->id_menu,
+				'post_type' 					=> &$this->post_type,
+				'cf_registered_sidebars' 		=> &$this->cf_registered_sidebars,
+				'sidebars_fields' 				=> &$this->sidebars_fields,
+				'cf_registered_fields' 			=> &$this->cf_registered_fields,
+				'cf_registered_field_controls' 	=> &$this->cf_registered_field_controls,
+                                'taxo'                          => &$this->taxo
+			),
+			array(
+				'cf_sidebar' 					=> &$this->cf_sidebar,
+				'cf_field_manager' 				=> &$this->cf_field_manager,
+				'cf_field_control' 				=> &$this->cf_field_control,
+				));
+
+		$this->cf_admin_object	=& new CF_Admin_Object_Taxo(
+			array(
+				'post_type' 				=> &$this->post_type,
+				'cf_registered_sidebars' 	=> &$this->cf_registered_sidebars,
+				'cf_registered_fields' 		=> &$this->cf_registered_fields,
+				'sidebars_fields' 			=> &$this->sidebars_fields,
+				'_cf_sidebars_fields' 		=> &$this->_cf_sidebars_fields,
+                                'taxo'                          => &$this->taxo
+			),
+			array());
+
+
+	}
+
+        function cf_load_options( $options ){
+
+		$options = wp_cache_get('cf_options-'.$this->post_type, FLAG_CACHE);
+
+		if( !empty($options) ) {
 			$this->sidebars_fields 				= isset($options['sidebars_fields']) ? (array) $options['sidebars_fields'] : array('cf_inactive_fields' => array(), 'array_version' => 3);
-			$this->cf_registered_fields			= isset($options['cf_registered_fields']) ? (array) $options['cf_registered_fields'] : array();
 			$this->option_fields				= isset($options['option_fields']) ? (array) $options['option_fields'] : array();
 			$this->sidebars						= isset($options['sidebars']) ? (array) $options['sidebars'] : array();
-			$this->cf_registered_field_updates 	= isset($options['cf_registered_field_updates']) ? (array) $options['cf_registered_field_updates'] : array();
-			$this->cf_registered_field_controls	= isset($options['cf_registered_field_controls']) ? (array) $options['cf_registered_field_controls'] : array();
 			$this->update_var('sidebars_fields');
-		}else {
+
+		} else {
 			$this->sidebars_fields = array('cf_inactive_fields' => array(), 'array_version' => 3);
 			$this->update_var('sidebars_fields');
 		}
-		$this->cf_field_factory =& new CF_Field_Factory	(&$this);
-		$this->cf_ajax 			=& new CF_Ajax_Field	(&$this);
-		$this->cf_page 			=& new CF_Page_Field_Taxo	(&$this);
-		$this->cf_sidebar 		=& new CF_Sidebar_Field	(&$this);
-		$this->cf_field_manager	=& new CF_Field_Manager	(&$this);
-		$this->cf_field_sidebar	=& new CF_Field_Sidebar	(&$this);
-		$this->cf_field_control	=& new CF_Field_Controle(&$this);
-		$this->cf_admin_object	=& new CF_Admin_Object_Taxo(&$this);
-		
-		add_action( 'cf_init-'.$this->post_type, array(&$this, 'cf_fields_init') );
-		
-		add_action( 'wp_loaded', array(&$this, 'cf_fields_load') , 1);
-		
 	}
 
-	function cf_fields_load(){
+	function cf_fields_load() {
 		do_action( 'cf_init-'.$this->post_type );
 	}
 	
 	function cf_fields_init() {
-
 		if ( !is_blog_installed() )
 			return;
 		
 		$this->cf_field_manager->register_field('CF_Field_Input');
 		$this->cf_field_manager->register_field('CF_Field_Textarea');
 		$this->cf_field_manager->register_field('CF_Field_EditorLight');
-		//$this->cf_field_manager->register_field('CF_Field_Editor');
 		$this->cf_field_manager->register_field('CF_Field_Select');
 		$this->cf_field_manager->register_field('CF_Field_SelectMultiple');
 		$this->cf_field_manager->register_field('CF_Field_Checkbox');
 		$this->cf_field_manager->register_field('CF_Field_DatePicker');
 		$this->cf_field_manager->register_field('CF_Field_Dropdown_Users');
 		$this->cf_field_manager->register_field('CF_Field_Media');
-		do_action('fields_init-' . $this->post_type, &$this);
+		$this->cf_field_manager->register_field('CF_Field_Separator');
+                
+		do_action_ref_array( 'fields_init-' . $this->post_type, array(&$this) );
 
 		$this->get_var('sidebars');
 
-		if( isset($this->sidebars) && is_array($this->sidebars) ){
-			foreach( $this->sidebars as $sidebar ){
+		if( isset($this->sidebars) && is_array($this->sidebars) ) {
+			foreach( $this->sidebars as $sidebar ) {
 				$sidebar['before_widget'] = '<tr class="form-field">';
 				$sidebar['after_widget'] = '</td></tr>';
 				$sidebar['before_title'] = '<th valign="top" scope="row"><label>';
@@ -116,72 +213,6 @@ class SimpleCustomTypes_Admin_Taxonomy{
 				$this->cf_sidebar->cf_register_sidebar( $sidebar );
 			}
 		}
-		$field_ar = array();
-		foreach($this->cf_registered_fields as $field => $value){
-
-			foreach($this->sidebars_fields as $name => $sidebar){
-				if( (!in_array($field, (array)$sidebar) && !strripos($field, '-2') && !isset($_POST['field-id'])) || ( isset($_POST['field-id']) && $_POST['field-id'] != $field && !in_array($field, (array)$sidebar) && !strripos($field, '-2')) ){
-				}else{
-					if( in_array($field, $field_ar) )
-						continue;
-					$field_ar[$field] = $value;
-				}
-			}
-
-		}
-
-		foreach( array_diff_key( $this->cf_registered_fields, $field_ar ) as $field => $value){
-			unset($this->cf_registered_fields[$field]);
-		}
-		$this->update_var('cf_registered_fields');
+                
 	}
-	//Must add cache manager
-	function update_var( $field = null ){
-		$options = array();
-		$flag = true;
-		
-		if($field == null){
-			$options['cf_registered_sidebars'] 		= $this->cf_registered_sidebars;
-			$options['sidebars_fields'] 			= $this->sidebars_fields;
-			$options['cf_registered_fields']		= $this->cf_registered_fields;
-			//$options['option_fields']				= $this->option_fields;
-		}else{
-		
-			$options = wp_cache_get('cf_options-'.$this->post_type, FLAG_CACHE);
-			
-			if( $options[$field] == $this->$field )
-				$flag = false;
-			
-			//$options = get_option('cf_options-'.$this->post_type);
-			//$this->p_options = $options;
-			
-			if( !isset($options[$field]) || $options[$field] != $this->$field ) {
-				$options[$field] = $this->$field;
-			} else {
-				$flag = false;
-			}
-			
-		}
-		//$options = array();
-		if($flag == true){
-			update_option( 'cf_options-'.$this->post_type, $options );
-			wp_cache_replace('cf_options-'.$this->post_type, $options, FLAG_CACHE, 3600);
-		}
-	}
-	
-	function get_var( $field = null ){
-			$options = wp_cache_get('cf_options-'.$this->post_type, FLAG_CACHE);
-		if( $field == null ){
-			$this->cf_registered_sidebars 	= (array)$options['cf_registered_sidebars'];
-			$this->sidebars_fields			= (array)$options['sidebars_fields'];
-			$this->cf_registered_fields 	= (array)$options['cf_registered_fields'];
-			$this->option_fields 			= (array)$options['option_fields'];
-		}else{
-			if( isset($options[$field]) )
-				$this->$field = (array)$options[$field];
-			else
-				$this->$field = array();
-		}
-	}
-
 }

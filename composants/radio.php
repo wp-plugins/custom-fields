@@ -1,19 +1,18 @@
 <?php
-class CF_Field_Checkbox extends CF_Field{
+class CF_Field_Radio extends CF_Field{
 	
-	function CF_Field_Checkbox() {
-		$field_ops = array('classname' => 'field_checkbox', 'description' => __( 'Check boxes are used when you want to let the visitor select one or more options from a set of alternatives.', 'custom-fields') );
-		$this->CF_Field('checkbox', __('Checkbox', 'custom-fields'), '_input-checkbox', true, $field_ops);
+	function CF_Field_Radio() {
+		$field_ops = array('classname' => 'field_radio', 'description' => __( 'Radio buttons are used when you want to let the visitor select one - and just one - option from a set of alternatives.', 'custom-fields') );
+		$this->CF_Field('radio', __('Radio', 'custom-fields'), '_input-radio', true, $field_ops);
 	}
 	
 	function field( $args, $instance ) {
 		extract( $args );
 		
+		$entries = is_array($entries) ? $entries['name'] : $entries;
+		
 		$values = array();
-                $tabflag = false;
 		$v = explode('#', $instance['settings']);
-                if( count($v) == 1 )
-                    $tabflag = true;
 		//$ti = array_shift($v);
 		if( empty($v))
 			return false;
@@ -21,24 +20,28 @@ class CF_Field_Checkbox extends CF_Field{
 			$a = explode('|', $val);
 			if( count($a) != 2)
 				continue;
+
+                        if( is_numeric( strpos($a[1], '~') ) ){
+                            $a[1] = str_replace('~', '', $a[1]);
+                            $default_checked = $a[1];
+                        }
 			$values[$a[0]] = $a[1];
 		}
 		if(empty($values))
 			return false;
-			
+
+                if( empty($entries) && isset($default_checked) )
+                    $entries[] = $default_checked;
+
 		$title = apply_filters('widget_title', empty( $instance['title'] ) ? '' : $instance['title'], $instance, $this->id_base);
 
 		echo $before_widget;
 		if ( $title)
 			echo $before_title . $title . $after_title;
 		
-		echo '<div class="checkbox-field">';
+		echo '<div class="radio-field">';
 			foreach( (array) $values as $key => $val ) {
-                                if( $tabflag )
-                                    $checked = $val == $entries;
-                                else
-                                    $checked = in_array($val, (array)$entries);
-				echo '<label><input type="checkbox" name="'.$this->get_field_name('name'). ($tabflag ? '' : '[]') . '" id="'.$this->get_field_id('name').'" value="'.esc_attr($val).'" '.checked(true, $checked, false).'/> '.$key.'</label>' . "\n";
+				echo '<label><input type="radio" name="'.$this->get_field_name('name').'[]" id="'.$this->get_field_id('name').'" value="'.esc_attr($val).'" '.checked(true, in_array($val, (array)$entries), false).'/> '.$key.'</label>' . "\n";
 			}
 		echo '</div>';
 		
@@ -78,7 +81,7 @@ class CF_Field_Checkbox extends CF_Field{
 		<p>
 			<label for="<?php echo $this->get_field_id('settings'); ?>"><?php _e('Settings:', 'custom-fields'); ?></label> 
 			<textarea class="widefat" id="<?php echo $this->get_field_id('settings'); ?>" name="<?php echo $this->get_field_name('settings'); ?>" ><?php echo $settings; ?></textarea>
-			<br/><small>Parameters like : label1|id1#label2|id2</small>
+			<br/><small>Parameters like : label1|id1#label2|id2 . Use ~ after id for default item</small>
 		</p>
 		<p>
 			<label for="<?php echo $this->get_field_id('description'); ?>"><?php _e('Description:', 'custom-fields'); ?></label>
