@@ -14,7 +14,7 @@ class CF_Admin_Object extends Functions {
 		add_action( 'admin_enqueue_scripts', array(&$this, 'initStyleScript'), 10 );
 		
 		// Save custom datas
-		add_action( 'transition_post_status', array(&$this, 'saveCustomFields'), 10, 3 );
+		add_action( 'wp_insert_post', array(&$this, 'saveCustomFields'), 10, 3 );
 		
 		// Add blocks on write page
 		add_action( 'add_meta_boxes', array(&$this, 'initCustomFields'), 10, 1 );
@@ -84,9 +84,9 @@ class CF_Admin_Object extends Functions {
 	 * @return void
 	 * @author Julien Guilmont
 	 */
- 	function saveCustomFields( $new_status, $old_status, $post )  {
+ 	function saveCustomFields( $post_id, $post )  {
                 $did_one = false;
- 		if ( $post->post_type != $this->post_type || $new_status != 'publish' || ( isset($_REQUEST['action']) &&  $_REQUEST['action'] == 'inline-save') ) {
+ 		if ( $post->post_type != $this->post_type || ( isset($_REQUEST['action']) &&  $_REQUEST['action'] == 'inline-save') ) {
  			return false;
  		}
 		if( isset($this->cf_registered_sidebars) ){

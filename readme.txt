@@ -2,9 +2,9 @@
 Contributors: djudorange
 Donate link: http://www.djudorange.fr/donate/
 Tags: custom, fields, custom fields, term meta, meta, post meta, object meta, editor
-Requires at least: 3.0.0
-Tested up to: 3.0.1
-Stable tag: 2.2.2
+Requires at least: 3.0.2
+Tested up to: 3.3.1
+Stable tag: 3.0.2
 
 This plugin add custom fields for some things on WordPress, term taxonomy and custom object types
 
@@ -30,6 +30,8 @@ get_fieldmeta_taxo( $term_id = null, $taxonomy = null, $name = null, $alone = tr
 2. The edit post page with fields created by custom fields
 
 == Changelog ==
+* Version 3.0.2
+	* Fix JS compatible with new Sortable JQuery UI
 * Version 3.0.1 :
 	* New Style of Admin page fields and in Post edit page
 	* Fix multiple Bug (already Stable)
